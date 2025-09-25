@@ -54,6 +54,9 @@ import narrator from 'assets/windowsIcons/narrator.ico';
 import pinball from 'assets/windowsIcons/pinball.png';
 import restore from 'assets/windowsIcons/restore.ico';
 import mine from 'assets/minesweeper/mine-icon.png';
+import userIcon from 'assets/windowsIcons/214(16x16).png';
+import shopIcon from 'assets/windowsIcons/392(16x16).png';
+import adminIcon from 'assets/windowsIcons/227(16x16).png';
 
 export const MyRecentDocuments = [
   {
@@ -357,6 +360,16 @@ export const AllPrograms = [
         icon: spider,
         text: 'Solitario Spider',
       },
+    ],
+  },
+  {
+    type: 'menu',
+    icon: menu,
+    text: 'Tienda',
+    items: [
+      { type: 'item', icon: shopIcon, text: 'Catálogo' },
+      { type: 'item', icon: adminIcon, text: 'Admin' },
+      { type: 'item', icon: userIcon, text: 'Auth' },
     ],
   },
   {

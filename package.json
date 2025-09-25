@@ -5,6 +5,7 @@
   "author": "ShizukuIchi <shizukuichi@gmail.com>",
   "homepage": "https://wxp.vercel.app",
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "lodash.samplesize": "^4.2.0",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
@@ -29,9 +30,7 @@
     "not op_mini all"
   ],
   "devDependencies": {
-          "eslint": "^6.1.0"
-          
-
+    "eslint": "^6.1.0"
   },
   "engines": {
     "node": ">=10.16.0"

@@ -18,17 +18,19 @@ import {
   CANCEL_POWER_OFF,
 } from './constants/actions';
 import { FOCUSING, POWER_STATE } from './constants';
-import { defaultIconState, defaultAppState, appSettings } from './apps';
+import { defaultIconState, appSettings } from './apps';
 import Modal from './Modal';
 import Footer from './Footer';
 import Windows from './Windows';
 import Icons from './Icons';
 import { DashedBox } from 'components';
+import LoginScreen from './LoginScreen';
+import { useAppState } from 'state/AppStateContext';
 
 const initState = {
-  apps: defaultAppState,
-  nextAppID: defaultAppState.length,
-  nextZIndex: defaultAppState.length,
+  apps: [],
+  nextAppID: 0,
+  nextZIndex: 0,
   focusing: FOCUSING.WINDOW,
   icons: defaultIconState,
   selecting: false,
@@ -179,6 +181,7 @@ const reducer = (state, action = { type: '' }) => {
   }
 };
 function WinXP() {
+  const { state: appState, supabase, dispatch: appDispatch, ACTIONS } = useAppState();
   const [state, dispatch] = useReducer(reducer, initState);
   const ref = useRef(null);
   const mouse = useMouse(ref);
@@ -210,6 +213,16 @@ function WinXP() {
     },
     [focusedAppId],
   );
+  async function logoutAndShowLogin() {
+    try {
+      await supabase.auth.signOut();
+    } catch (_e) {}
+    appDispatch({ type: ACTIONS.SET_SESSION, payload: { session: null, user: null } });
+    // cerrar ventanas
+    // reiniciar pila local
+    // Nota: usamos setTimeout para asegurar que el overlay se renderice sin parpadeo
+    setTimeout(() => {}, 0);
+  }
   function onMouseDownFooterApp(id) {
     if (focusedAppId === id) {
       dispatch({ type: MINIMIZE_APP, payload: id });
@@ -224,7 +237,25 @@ function WinXP() {
     const appSetting = Object.values(appSettings).find(
       setting => setting.component === component,
     );
+    if (!appSetting) return;
+    // Si es Admin, inyectamos helpers y mostramos lanzador
+    if (appSetting === appSettings.Admin) {
+      dispatch({
+        type: ADD_APP,
+        payload: {
+          ...appSetting,
+          injectProps: {
+            showLauncher: true,
+            openCatalog: () => dispatch({ type: ADD_APP, payload: appSettings['Catálogo'] }),
+          },
+        },
+      });
+      return;
+    }
     dispatch({ type: ADD_APP, payload: appSetting });
+  }
+  function openAdminPanel() {
+    dispatch({ type: ADD_APP, payload: appSettings.Admin });
   }
   function getFocusedAppId() {
     if (state.focusing !== FOCUSING.WINDOW) return -1;
@@ -249,8 +280,14 @@ function WinXP() {
       dispatch({ type: ADD_APP, payload: appSettings.Winamp });
     else if (o === 'Paint')
       dispatch({ type: ADD_APP, payload: appSettings.Paint });
-    else if (o === 'Log Off')
-      dispatch({ type: POWER_OFF, payload: POWER_STATE.LOG_OFF });
+    else if (o === 'Auth')
+      dispatch({ type: ADD_APP, payload: appSettings.Auth });
+    else if (o === 'Catálogo')
+      dispatch({ type: ADD_APP, payload: appSettings['Catálogo'] });
+    else if (o === 'Admin')
+      dispatch({ type: ADD_APP, payload: appSettings.Admin });
+    else if (o === 'Log Off' || o === 'Cerrar sesión')
+      logoutAndShowLogin();
     else if (o === 'Turn Off Computer')
       dispatch({ type: POWER_OFF, payload: POWER_STATE.TURN_OFF });
     else
@@ -275,12 +312,19 @@ function WinXP() {
   function onIconsSelected(iconIds) {
     dispatch({ type: SELECT_ICONS, payload: iconIds });
   }
-  function onClickModalButton(text) {
+  async function onClickModalButton(text) {
     dispatch({ type: CANCEL_POWER_OFF });
-    dispatch({
-      type: ADD_APP,
-      payload: appSettings.Error,
-    });
+    const t = String(text || '').toLowerCase();
+    if (
+      t === 'log off' ||
+      t === 'switch user' ||
+      t === 'cerrar sesión' ||
+      t === 'cambiar de usuario'
+    ) {
+      await logoutAndShowLogin();
+      return;
+    }
+    dispatch({ type: ADD_APP, payload: appSettings.Error });
   }
   function onModalClose() {
     dispatch({ type: CANCEL_POWER_OFF });
@@ -292,32 +336,37 @@ function WinXP() {
       onMouseDown={onMouseDownDesktop}
       state={state.powerState}
     >
-      <Icons
-        icons={state.icons}
-        onMouseDown={onMouseDownIcon}
-        onDoubleClick={onDoubleClickIcon}
-        displayFocus={state.focusing === FOCUSING.ICON}
-        appSettings={appSettings}
-        mouse={mouse}
-        selecting={state.selecting}
-        setSelectedIcons={onIconsSelected}
-      />
-      <DashedBox startPos={state.selecting} mouse={mouse} />
-      <Windows
-        apps={state.apps}
-        onMouseDown={onFocusApp}
-        onClose={onCloseApp}
-        onMinimize={onMinimizeWindow}
-        onMaximize={onMaximizeWindow}
-        focusedAppId={focusedAppId}
-      />
-      <Footer
-        apps={state.apps}
-        onMouseDownApp={onMouseDownFooterApp}
-        focusedAppId={focusedAppId}
-        onMouseDown={onMouseDownFooter}
-        onClickMenuItem={onClickMenuItem}
-      />
+      {!appState.user && <LoginScreen />}
+      {appState.user && (
+        <>
+          <Icons
+            icons={state.icons}
+            onMouseDown={onMouseDownIcon}
+            onDoubleClick={onDoubleClickIcon}
+            displayFocus={state.focusing === FOCUSING.ICON}
+            appSettings={appSettings}
+            mouse={mouse}
+            selecting={state.selecting}
+            setSelectedIcons={onIconsSelected}
+          />
+          <DashedBox startPos={state.selecting} mouse={mouse} />
+          <Windows
+            apps={state.apps}
+            onMouseDown={onFocusApp}
+            onClose={onCloseApp}
+            onMinimize={onMinimizeWindow}
+            onMaximize={onMaximizeWindow}
+            focusedAppId={focusedAppId}
+          />
+          <Footer
+            apps={state.apps}
+            onMouseDownApp={onMouseDownFooterApp}
+            focusedAppId={focusedAppId}
+            onMouseDown={onMouseDownFooter}
+            onClickMenuItem={onClickMenuItem}
+          />
+        </>
+      )}
       {state.powerState !== POWER_STATE.START && (
         <Modal
           onClose={onModalClose}

@@ -15,6 +15,7 @@ import remove from 'assets/windowsIcons/302(16x16).png';
 import control from 'assets/windowsIcons/300(16x16).png';
 import network from 'assets/windowsIcons/693(16x16).png';
 import document from 'assets/windowsIcons/308(16x16).png';
+import adminIcon from 'assets/windowsIcons/227(16x16).png';
 import folderSmall from 'assets/windowsIcons/318(16x16).png';
 import menu from 'assets/windowsIcons/358(32x32).png';
 import folder from 'assets/windowsIcons/318(48x48).png';
@@ -27,7 +28,10 @@ import logo from 'assets/github-logo.png';
 import mine from 'assets/minesweeper/mine-icon.png';
 import windows from 'assets/windowsIcons/windows.png';
 
-function MyComputer({ onClose }) {
+import { useAppState } from 'state/AppStateContext';
+
+function MyComputer({ onClose, openAdmin }) {
+  const { state: appState } = useAppState();
   function onClickOptionItem(item) {
     switch (item) {
       case 'Close':
@@ -307,6 +311,22 @@ function MyComputer({ onClose }) {
                     <div className="com__content__right__card__text">
                       Documentos del usuario
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="com__content__right__card">
+              <div className="com__content__right__card__header">Administración</div>
+              <div className="com__content__right__card__content">
+                <div
+                  className="com__content__right__card__item link"
+                  onDoubleClick={openAdmin}
+                  title="Gestionar productos y marcas"
+                  style={{ cursor: 'pointer' }}
+                >
+                  <img src={adminIcon} alt="admin" className="com__content__right__card__img" />
+                  <div className="com__content__right__card__img-container">
+                    <div className="com__content__right__card__text">Panel de administración</div>
                   </div>
                 </div>
               </div>

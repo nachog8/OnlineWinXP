@@ -4,6 +4,9 @@ import ErrorBox from './ErrorBox';
 import MyComputer from './MyComputer';
 import Notepad from './Notepad';
 import Winamp from './Winamp';
+import Auth from './Auth';
+import Catalog from './Catalog';
+import Admin from './Admin';
 import Paint from './Paint';
 import iePaper from 'assets/windowsIcons/ie-paper.png';
 import ie from 'assets/windowsIcons/ie.png';
@@ -16,6 +19,9 @@ import notepadLarge from 'assets/windowsIcons/327(32x32).png';
 import winamp from 'assets/windowsIcons/winamp.png';
 import paintLarge from 'assets/windowsIcons/680(32x32).png';
 import paint from 'assets/windowsIcons/680(16x16).png';
+import userIcon from 'assets/windowsIcons/214(16x16).png';
+import shopIcon from 'assets/windowsIcons/392(16x16).png';
+import adminIcon from 'assets/windowsIcons/227(16x16).png';
 
 const gen = () => {
   let id = -1;
@@ -120,37 +126,58 @@ export const defaultIconState = [
   },
   {
     id: 1,
+    icon: shopIcon,
+    title: 'Catálogo',
+    component: Catalog,
+    isFocus: false,
+  },
+  {
+    id: 2,
+    icon: adminIcon,
+    title: 'Administrador',
+    component: Admin,
+    isFocus: false,
+  },
+  {
+    id: 3,
     icon: mine,
     title: 'Minesweeper',
     component: Minesweeper,
     isFocus: false,
   },
   {
-    id: 2,
+    id: 4,
     icon: computerLarge,
     title: 'Mi PC',
     component: MyComputer,
     isFocus: false,
   },
   {
-    id: 3,
+    id: 5,
     icon: notepadLarge,
     title: 'Notepad',
     component: Notepad,
     isFocus: false,
   },
   {
-    id: 4,
+    id: 6,
     icon: winamp,
     title: 'Winamp',
     component: Winamp,
     isFocus: false,
   },
   {
-    id: 5,
+    id: 7,
     icon: paintLarge,
     title: 'Paint',
     component: Paint,
+    isFocus: false,
+  },
+  {
+    id: 8,
+    icon: userIcon,
+    title: 'Auth',
+    component: Auth,
     isFocus: false,
   },
 ];
@@ -234,6 +261,19 @@ export const appSettings = {
     maximized: window.innerWidth < 800,
     multiInstance: false,
   },
+  AdminPanel: {
+    header: {
+      icon: adminIcon,
+      title: 'Panel Admin',
+    },
+    component: Admin,
+    defaultSize: { width: 820, height: 560 },
+    defaultOffset: { x: 260, y: 80 },
+    resizable: true,
+    minimized: false,
+    maximized: window.innerWidth < 800,
+    multiInstance: false,
+  },
   Notepad: {
     header: {
       icon: notepad,
@@ -291,6 +331,45 @@ export const appSettings = {
     minimized: false,
     maximized: window.innerWidth < 800,
     multiInstance: true,
+  },
+  Auth: {
+    header: {
+      icon: userIcon,
+      title: 'Autenticación',
+    },
+    component: Auth,
+    defaultSize: { width: 420, height: 0 },
+    defaultOffset: { x: 300, y: 100 },
+    resizable: true,
+    minimized: false,
+    maximized: false,
+    multiInstance: false,
+  },
+  Catálogo: {
+    header: {
+      icon: shopIcon,
+      title: 'Catálogo',
+    },
+    component: Catalog,
+    defaultSize: { width: 680, height: 520 },
+    defaultOffset: { x: 320, y: 120 },
+    resizable: true,
+    minimized: false,
+    maximized: window.innerWidth < 800,
+    multiInstance: false,
+  },
+  Admin: {
+    header: {
+      icon: adminIcon,
+      title: 'Panel Admin',
+    },
+    component: Admin,
+    defaultSize: { width: 820, height: 560 },
+    defaultOffset: { x: 260, y: 80 },
+    resizable: true,
+    minimized: false,
+    maximized: window.innerWidth < 800,
+    multiInstance: false,
   },
 };
 
