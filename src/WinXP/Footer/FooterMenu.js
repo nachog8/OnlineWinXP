@@ -41,23 +41,23 @@ function FooterMenu({ className, onClick }) {
     <div className={className}>
       <header>
         <img className="header__img" src={user} alt="avatar" />
-        <span className="header__text">User</span>
+        <span className="header__text">Usuario</span>
       </header>
       <section className="menu" onMouseOver={onMouseOver}>
         <hr className="orange-hr" />
         <div className="menu__left">
           <Item onClick={onClick} text="Internet" icon={ie}>
-            <div className="menu__item__subtext">The Chrome Explorer</div>
+            <div className="menu__item__subtext">El Explorador Chrome</div>
           </Item>
-          <Item onClick={onClick} text="E-mail" icon={outlook}>
+          <Item onClick={onClick} text="Correo electrónico" icon={outlook}>
             <div className="menu__item__subtext">Outlook Express</div>
           </Item>
           <div className="menu__separator" />
           <Items
             onClick={onClick}
             items={[
-              { icon: mine, text: 'Minesweeper' },
-              { icon: notepad, text: 'Notepad' },
+              { icon: mine, text: 'Buscaminas' },
+              { icon: notepad, text: 'Bloc de notas' },
               { icon: winamp, text: 'Winamp' },
               { icon: paint, text: 'Paint' },
               { icon: mediaPlayer, text: 'Windows Media Player' },
@@ -68,7 +68,7 @@ function FooterMenu({ className, onClick }) {
           <div className="menu__separator" />
           <Item
             style={
-              hovering === 'All Programs'
+              hovering === 'Todos los programas'
                 ? {
                     backgroundColor: '#2f71cd',
                     color: '#FFF',
@@ -77,7 +77,7 @@ function FooterMenu({ className, onClick }) {
             }
             text={
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                All Programs
+                Todos los programas
                 <img
                   src={allProgramsIcon}
                   alt=""
@@ -96,23 +96,23 @@ function FooterMenu({ className, onClick }) {
           </Item>
         </div>
         <div className="menu__right">
-          <Item text="My Documents" icon={documents} onClick={onClick} />
+          <Item text="Mis documentos" icon={documents} onClick={onClick} />
           <Item
             style={
-              hovering === 'My Recent Documents'
+              hovering === 'Mis documentos recientes'
                 ? {
                     backgroundColor: '#2f71cd',
                     color: '#FFF',
                   }
                 : {}
             }
-            text="My Recent Documents"
+            text="Mis documentos recientes"
             icon={recentDocuments}
           >
             <div
               style={{
                 borderLeftColor:
-                  hovering === 'My Recent Documents' ? '#FFF' : '#00136b',
+                  hovering === 'Mis documentos recientes' ? '#FFF' : '#00136b',
               }}
               className="menu__arrow"
             />
@@ -127,64 +127,64 @@ function FooterMenu({ className, onClick }) {
           <Items
             onClick={onClick}
             items={[
-              { icon: pictures, text: 'My Pictures' },
-              { icon: music, text: 'My Music' },
-              { icon: computer, text: 'Abstract Computer' },
+              { icon: pictures, text: 'Mis imágenes' },
+              { icon: music, text: 'Mi música' },
+              { icon: computer, text: 'Mi PC' },
             ]}
           />
           <div className="menu__separator" />
           <Items
             onClick={onClick}
             items={[
-              { icon: controlPanel, text: 'Control Panel' },
-              { icon: setAccess, text: 'Set Program Access and Defaults' },
+              { icon: controlPanel, text: 'Panel de control' },
+              { icon: setAccess, text: 'Establecer acceso y valores predeterminados de programa' },
             ]}
           />
           <Item
             style={
-              hovering === 'Connect To'
+              hovering === 'Conectar a'
                 ? {
                     backgroundColor: '#2f71cd',
                     color: '#FFF',
                   }
                 : {}
             }
-            text="Connect To"
+            text="Conectar a"
             icon={connect}
           >
             <div
               style={{
-                borderLeftColor: hovering === 'Connect To' ? '#FFF' : '#00136b',
+                borderLeftColor: hovering === 'Conectar a' ? '#FFF' : '#00136b',
               }}
               className="menu__arrow"
             />
-            {hovering === 'Connect To' && (
+            {hovering === 'Conectar a' && (
               <SubMenu left="153px" data={ConnectTo} onClick={onClick} />
             )}
           </Item>
-          <Item onClick={onClick} text="Printers and Faxes" icon={printer} />
+          <Item onClick={onClick} text="Impresoras y faxes" icon={printer} />
           <div className="menu__separator" />
           <Items
             onClick={onClick}
             items={[
-              { icon: help, text: 'Help and Support' },
-              { icon: search, text: 'Search' },
-              { icon: run, text: 'Run...' },
+              { icon: help, text: 'Ayuda y soporte técnico' },
+              { icon: search, text: 'Buscar' },
+              { icon: run, text: 'Ejecutar...' },
             ]}
           />
         </div>
       </section>
       <footer>
-        <div className="footer__item" onClick={() => onClick('Log Off')}>
+        <div className="footer__item" onClick={() => onClick('Cerrar sesión')}>
           <img className="footer__item__img" src={lock} alt="" />
-          <span>Log Off</span>
+          <span>Cerrar sesión</span>
         </div>
         <div
           className="footer__item"
-          onClick={() => onClick('Turn Off Computer')}
+          onClick={() => onClick('Apagar equipo')}
         >
           <img className="footer__item__img" src={shut} alt="" />
-          <span>Turn Off Computer</span>
+          <span>Apagar equipo</span>
         </div>
       </footer>
     </div>

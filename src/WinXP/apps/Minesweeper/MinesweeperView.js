@@ -75,11 +75,11 @@ function renderDigits(number) {
 }
 
 function genDropDownData(difficulty) {
-  let _Game = [...dropDownData.Game];
+  let _Game = [...dropDownData['Juego']];
   _Game[2].symbol = difficulty === 'Beginner' && 'check';
   _Game[3].symbol = difficulty === 'Intermediate' && 'check';
   _Game[4].symbol = difficulty === 'Expert' && 'check';
-  return { Game: _Game, Help: dropDownData.Help };
+  return { 'Juego': _Game, 'Ayuda': dropDownData['Ayuda'] };
 }
 
 function MineSweeperView({

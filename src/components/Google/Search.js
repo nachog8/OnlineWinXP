@@ -68,21 +68,21 @@ function Search({ className, goMain, onSearch, query }) {
         <div className="app-bar">
           <div className="tags left">{renderTags()}</div>
           <div className="tags right">
-            <div className="tag">Settings</div>
-            <div className="tag">Tools</div>
+            <div className="tag">Configuración</div>
+            <div className="tag">Herramientas</div>
           </div>
         </div>
       </section>
       <section className="content">
         <p>
-          Your search - <span id="search-in-content">{query}</span> - did not
-          match any documents.
+          Su búsqueda - <span id="search-in-content">{query}</span> - no
+          encontró ningún documento.
         </p>
-        <p>Suggestions</p>
+        <p>Sugerencias</p>
         <ul>
-          <li>Make sure that all words are spelled correctly.</li>
-          <li>Try different keywords.</li>
-          <li>Try more general keywords.</li>
+          <li>Asegúrese de que todas las palabras estén escritas correctamente.</li>
+          <li>Pruebe con palabras clave diferentes.</li>
+          <li>Pruebe con palabras clave más generales.</li>
         </ul>
       </section>
       <footer>

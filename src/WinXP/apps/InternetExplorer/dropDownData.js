@@ -1,7 +1,7 @@
 export const File = [
   {
     type: 'menu',
-    text: 'New',
+    text: 'Nuevo',
     position: {
       left: 'calc(100% - 4px)',
       top: '-3px',
@@ -9,70 +9,70 @@ export const File = [
     items: [
       {
         type: 'item',
-        text: 'Window',
+        text: 'Ventana',
         hotkey: 'Ctrl+N',
       },
       { type: 'separator' },
       {
         type: 'item',
-        text: 'Message',
+        text: 'Mensaje',
       },
       {
         type: 'item',
-        text: 'Post',
+        text: 'Publicación',
       },
       {
         type: 'item',
-        text: 'Contact',
+        text: 'Contacto',
       },
       {
         type: 'item',
-        text: 'Internet Call',
+        text: 'Llamada por Internet',
       },
     ],
   },
   {
     type: 'item',
-    text: 'Open...',
+    text: 'Abrir...',
     hotkey: 'Ctrl+O',
   },
   {
     type: 'item',
-    text: 'Edit',
+    text: 'Editar',
     disable: true,
   },
   {
     type: 'item',
     disable: true,
-    text: 'Save',
+    text: 'Guardar',
     hotkey: 'Ctrl+S',
   },
   {
     type: 'item',
-    text: 'Save As...',
+    text: 'Guardar como...',
   },
   {
     type: 'separator',
   },
   {
     type: 'item',
-    text: 'Page Setup...',
+    text: 'Configurar página...',
   },
   {
     type: 'item',
-    text: 'Print...',
+    text: 'Imprimir...',
     hotkey: 'Ctrl+P',
   },
   {
     type: 'item',
-    text: 'Print Preview...',
+    text: 'Vista previa de impresión...',
   },
   {
     type: 'separator',
   },
   {
     type: 'menu',
-    text: 'Send',
+    text: 'Enviar',
     position: {
       left: 'calc(100% - 4px)',
       top: '-3px',
@@ -80,36 +80,36 @@ export const File = [
     items: [
       {
         type: 'item',
-        text: 'Page by E-mail...',
+        text: 'Página por correo electrónico...',
       },
       {
         type: 'item',
-        text: 'Link by E-mail...',
+        text: 'Vínculo por correo electrónico...',
       },
       {
         type: 'item',
-        text: 'Shortcut to Desktop',
+        text: 'Acceso directo al escritorio',
       },
     ],
   },
   {
     type: 'item',
-    text: 'Import and Export...',
+    text: 'Importar y exportar...',
   },
   {
     type: 'separator',
   },
   {
     type: 'item',
-    text: 'Properties',
+    text: 'Propiedades',
   },
   {
     type: 'item',
-    text: 'Work Offline',
+    text: 'Trabajar sin conexión',
   },
   {
     type: 'item',
-    text: 'Close',
+    text: 'Cerrar',
   },
 ];
 
@@ -117,19 +117,19 @@ const Edit = [
   {
     type: 'item',
     disable: true,
-    text: 'Cut',
+    text: 'Cortar',
     hotkey: 'Ctrl+X',
   },
   {
     type: 'item',
     disable: true,
-    text: 'Copy',
+    text: 'Copiar',
     hotkey: 'Ctrl+C',
   },
   {
     type: 'item',
     disable: true,
-    text: 'Paste',
+    text: 'Pegar',
     hotkey: 'Ctrl+V',
   },
   {
@@ -137,7 +137,7 @@ const Edit = [
   },
   {
     type: 'item',
-    text: 'Select All',
+    text: 'Seleccionar todo',
     hotkey: 'Ctrl+A',
   },
   {
@@ -145,7 +145,7 @@ const Edit = [
   },
   {
     type: 'item',
-    text: 'Find (on This Page)...',
+    text: 'Buscar (en esta página)...',
     hotkey: 'Ctrl+F',
   },
 ];
@@ -157,22 +157,22 @@ const View = [
       left: 'calc(100% - 4px)',
       top: '-3px',
     },
-    text: 'Toolbars',
+    text: 'Barras de herramientas',
     items: [
       {
         type: 'item',
         symbol: 'check',
-        text: 'Standard Buttons',
+        text: 'Botones estándar',
       },
       {
         type: 'item',
         symbol: 'check',
-        text: 'Address Bar',
+        text: 'Barra de direcciones',
       },
       {
         type: 'item',
         symbol: 'check',
-        text: 'Links',
+        text: 'Vínculos',
       },
       {
         type: 'separator',
@@ -180,18 +180,18 @@ const View = [
       {
         type: 'item',
         symbol: 'check',
-        text: 'Lock the Toolbars',
+        text: 'Bloquear las barras de herramientas',
       },
       {
         type: 'item',
-        text: 'Customize...',
+        text: 'Personalizar...',
       },
     ],
   },
   {
     type: 'item',
     symbol: 'check',
-    text: 'Status Bar',
+    text: 'Barra de estado',
   },
   {
     type: 'menu',
@@ -199,33 +199,33 @@ const View = [
       left: 'calc(100% - 4px)',
       top: '-3px',
     },
-    text: 'Explorer Bar',
+    text: 'Barra del explorador',
     items: [
       {
         type: 'item',
-        text: 'Search',
+        text: 'Buscar',
         hotkey: 'Ctrl+E',
       },
       {
         type: 'item',
-        text: 'Favorites',
+        text: 'Favoritos',
         hotkey: 'Ctrl+I',
       },
       {
         type: 'item',
-        text: 'History',
+        text: 'Historial',
         hotkey: 'Ctrl+H',
       },
       {
         type: 'item',
-        text: 'Folders',
+        text: 'Carpetas',
       },
       {
         type: 'separator',
       },
       {
         type: 'item',
-        text: 'Tip of the Day',
+        text: 'Consejo del día',
       },
     ],
   },
@@ -238,18 +238,18 @@ const View = [
       left: 'calc(100% - 4px)',
       top: '-3px',
     },
-    text: 'Go to',
+    text: 'Ir a',
     items: [
       {
         type: 'item',
         disable: true,
-        text: 'Back',
+        text: 'Atrás',
         hotkey: 'Alt+Left Arrow',
       },
       {
         type: 'item',
         disable: true,
-        text: 'Forward',
+        text: 'Adelante',
         hotkey: 'Alt+Right Arrow',
       },
       {
@@ -257,7 +257,7 @@ const View = [
       },
       {
         type: 'item',
-        text: 'Home Page',
+        text: 'Página principal',
         hotkey: 'Alt+Home',
       },
       {
@@ -265,19 +265,19 @@ const View = [
       },
       {
         type: 'item',
-        text: 'Cannot find server',
+        text: 'No se puede encontrar el servidor',
         symbol: 'check',
       },
     ],
   },
   {
     type: 'item',
-    text: 'Stop',
+    text: 'Detener',
     hotkey: 'Esc',
   },
   {
     type: 'item',
-    text: 'Refresh',
+    text: 'Actualizar',
     hotkey: 'F5',
   },
   {
@@ -289,28 +289,28 @@ const View = [
       left: 'calc(100% - 4px)',
       top: '-3px',
     },
-    text: 'Text Size',
+    text: 'Tamaño del texto',
     items: [
       {
         type: 'item',
-        text: 'Largest',
+        text: 'Más grande',
       },
       {
         type: 'item',
-        text: 'Larger',
+        text: 'Más grande',
       },
       {
         type: 'item',
-        text: 'Medium',
+        text: 'Mediano',
         symbol: 'circle',
       },
       {
         type: 'item',
-        text: 'Smaller',
+        text: 'Más pequeño',
       },
       {
         type: 'item',
-        text: 'Smallest',
+        text: 'Más pequeño',
       },
     ],
   },
@@ -320,18 +320,18 @@ const View = [
       left: 'calc(100% - 4px)',
       top: '-3px',
     },
-    text: 'Encoding',
+    text: 'Codificación',
     items: [
       {
         type: 'item',
-        text: 'Auto-Select',
+        text: 'Selección automática',
       },
       {
         type: 'separator',
       },
       {
         type: 'item',
-        text: 'Western European (Windows)',
+        text: 'Europeo occidental (Windows)',
         symbol: 'circle',
       },
       {
@@ -340,7 +340,7 @@ const View = [
           left: 'calc(100% - 4px)',
           top: '-3px',
         },
-        text: 'More',
+        text: 'Más',
         items: [
           {
             type: 'item',
@@ -351,7 +351,7 @@ const View = [
           },
           {
             type: 'item',
-            text: 'Chinese Traditional',
+            text: 'Chino tradicional',
           },
         ],
       },
@@ -362,27 +362,27 @@ const View = [
   },
   {
     type: 'item',
-    text: 'Source',
+    text: 'Código fuente',
   },
   {
     type: 'item',
     disable: true,
-    text: 'Privacy Report...',
+    text: 'Informe de privacidad...',
   },
   {
     type: 'item',
-    text: 'Full Screen',
+    text: 'Pantalla completa',
     hotkey: 'F11',
   },
 ];
 const Favorites = [
   {
     type: 'item',
-    text: 'Add to Favorites...',
+    text: 'Agregar a favoritos...',
   },
   {
     type: 'item',
-    text: 'Organize Favorites...',
+    text: 'Organizar favoritos...',
   },
   {
     type: 'separator',
@@ -394,16 +394,16 @@ const Favorites = [
       left: 'calc(100% - 4px)',
       top: '-3px',
     },
-    text: 'Links',
+    text: 'Vínculos',
     items: [
       {
         type: 'item',
-        text: 'Customize Links',
+        text: 'Personalizar vínculos',
         symbol: 'ie-paper',
       },
       {
         type: 'item',
-        text: 'Free Hotmail',
+        text: 'Hotmail gratuito',
         symbol: 'ie-paper',
       },
       {
@@ -413,7 +413,7 @@ const Favorites = [
       },
       {
         type: 'item',
-        text: 'Windows Marketplace',
+        text: 'Marketplace de Windows',
         symbol: 'ie-book',
       },
       {
@@ -430,7 +430,7 @@ const Favorites = [
   },
   {
     type: 'item',
-    text: 'Radio Station Guide',
+    text: 'Guía de estaciones de radio',
     symbol: 'ie-paper',
   },
 ];
@@ -441,31 +441,31 @@ const Tools = [
       left: 'calc(100% - 4px)',
       top: '-3px',
     },
-    text: 'Mail and News',
+    text: 'Correo y noticias',
     items: [
       {
         type: 'item',
-        text: 'Read Mail',
+        text: 'Leer correo',
       },
 
       {
         type: 'item',
-        text: 'New Message...',
+        text: 'Nuevo mensaje...',
       },
       {
         type: 'item',
-        text: 'Send a Link...',
+        text: 'Enviar vínculo...',
       },
       {
         type: 'item',
-        text: 'Send Page...',
+        text: 'Enviar página...',
       },
       {
         type: 'separator',
       },
       {
         type: 'item',
-        text: 'Read News',
+        text: 'Leer noticias',
       },
     ],
   },
@@ -475,30 +475,30 @@ const Tools = [
       left: 'calc(100% - 4px)',
       top: '-3px',
     },
-    text: 'Pop-up Blocker',
+    text: 'Bloqueador de ventanas emergentes',
     items: [
       {
         type: 'item',
-        text: 'Turn Off Pop-up Blocker',
+        text: 'Desactivar bloqueador de ventanas emergentes',
       },
 
       {
         type: 'item',
-        text: 'Pop-up Blocker Settings...',
+        text: 'Configuración del bloqueador de ventanas emergentes...',
       },
     ],
   },
   {
     type: 'item',
-    text: 'Manage Add-ons...',
+    text: 'Administrar complementos...',
   },
   {
     type: 'item',
-    text: 'Synchronize...',
+    text: 'Sincronizar...',
   },
   {
     type: 'item',
-    text: 'Windows Update',
+    text: 'Actualización de Windows',
   },
   {
     type: 'separator',
@@ -509,43 +509,50 @@ const Tools = [
   },
   {
     type: 'item',
-    text: 'Diagnose Connection Problems...',
+    text: 'Diagnosticar problemas de conexión...',
   },
   {
     type: 'separator',
   },
   {
     type: 'item',
-    text: 'Internet Options...',
+    text: 'Opciones de Internet...',
   },
 ];
 const Help = [
   {
     type: 'item',
-    text: 'Contents and Index',
+    text: 'Contenido e índice',
   },
   {
     type: 'item',
-    text: 'Tip of the Day',
+    text: 'Consejo del día',
   },
   {
     type: 'item',
-    text: 'For Netscape Users',
+    text: 'Para usuarios de Netscape',
   },
   {
     type: 'item',
-    text: 'Online Support',
+    text: 'Soporte en línea',
   },
   {
     type: 'item',
-    text: 'Send Feedback',
+    text: 'Enviar comentarios',
   },
   {
     type: 'separator',
   },
   {
     type: 'item',
-    text: 'About Internet Explorer',
+    text: 'Acerca de Internet Explorer',
   },
 ];
-export default { File, Edit, View, Favorites, Tools, Help };
+export default { 
+  'Archivo': File, 
+  'Editar': Edit, 
+  'Ver': View, 
+  'Favoritos': Favorites, 
+  'Herramientas': Tools, 
+  'Ayuda': Help 
+};

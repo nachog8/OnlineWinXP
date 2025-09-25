@@ -91,7 +91,7 @@ export const defaultAppState = [
   {
     component: MyComputer,
     header: {
-      title: 'Abstract Computer',
+      title: 'Mi PC',
       icon: computer,
     },
     defaultSize: {
@@ -128,7 +128,7 @@ export const defaultIconState = [
   {
     id: 2,
     icon: computerLarge,
-    title: 'Abstract Computer',
+    title: 'Mi PC',
     component: MyComputer,
     isFocus: false,
   },
@@ -218,7 +218,7 @@ export const appSettings = {
   'Abstract Computer': {
     header: {
       icon: computer,
-      title: 'Abstract Computer',
+      title: 'Mi PC',
     },
     component: MyComputer,
     defaultSize: {

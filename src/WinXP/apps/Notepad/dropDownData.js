@@ -2,22 +2,22 @@ const File = [
   {
     type: 'item',
     disable: true,
-    text: 'New',
+    text: 'Nuevo',
   },
   {
     type: 'item',
     disable: true,
-    text: 'Open...',
+    text: 'Abrir...',
   },
   {
     type: 'item',
     disable: true,
-    text: 'Save',
+    text: 'Guardar',
   },
   {
     type: 'item',
     disable: true,
-    text: 'Save As...',
+    text: 'Guardar como...',
   },
   {
     type: 'separator',
@@ -135,4 +135,10 @@ const Help = [
     text: 'About Notepad',
   },
 ];
-export default { File, Edit, Format, View, Help };
+export default { 
+  'Archivo': File, 
+  'Editar': Edit, 
+  'Formato': Format, 
+  'Ver': View, 
+  'Ayuda': Help 
+};

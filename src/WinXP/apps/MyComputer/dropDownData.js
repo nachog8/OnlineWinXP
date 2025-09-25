@@ -1,37 +1,37 @@
 export const File = [
   {
     type: 'item',
-    text: 'Create Shortcut',
+    text: 'Crear acceso directo',
     disable: true,
   },
   {
     type: 'item',
-    text: 'Delete',
+    text: 'Eliminar',
     disable: true,
   },
   {
     type: 'item',
-    text: 'Rename',
+    text: 'Cambiar nombre',
     disable: true,
   },
   {
     type: 'item',
     disable: true,
-    text: 'Properties',
+    text: 'Propiedades',
   },
   {
     type: 'separator',
   },
   {
     type: 'item',
-    text: 'Close',
+    text: 'Cerrar',
   },
 ];
 const Edit = [
   {
     type: 'item',
     disable: true,
-    text: 'Undo',
+    text: 'Deshacer',
     hotkey: 'Ctrl+Z',
   },
   {
@@ -40,37 +40,37 @@ const Edit = [
   {
     type: 'item',
     disable: true,
-    text: 'Cut',
+    text: 'Cortar',
     hotkey: 'Ctrl+X',
   },
   {
     type: 'item',
     disable: true,
-    text: 'Copy',
+    text: 'Copiar',
     hotkey: 'Ctrl+C',
   },
   {
     type: 'item',
     disable: true,
-    text: 'Paste',
+    text: 'Pegar',
     hotkey: 'Ctrl+V',
   },
   {
     type: 'item',
     disable: true,
-    text: 'Paste Shortcut',
+    text: 'Pegar acceso directo',
   },
   {
     type: 'separator',
   },
   {
     type: 'item',
-    text: 'Copy To Folder...',
+    text: 'Copiar a carpeta...',
     disable: true,
   },
   {
     type: 'item',
-    text: 'Move To Folder...',
+    text: 'Mover a carpeta...',
     disable: true,
   },
   {
@@ -78,12 +78,12 @@ const Edit = [
   },
   {
     type: 'item',
-    text: 'Select All',
+    text: 'Seleccionar todo',
     hotkey: 'Ctrl+A',
   },
   {
     type: 'item',
-    text: 'Invert Selection',
+    text: 'Invertir selección',
   },
 ];
 
@@ -94,22 +94,22 @@ const View = [
       left: 'calc(100% - 4px)',
       top: '-3px',
     },
-    text: 'Toolbars',
+    text: 'Barras de herramientas',
     items: [
       {
         type: 'item',
         symbol: 'check',
-        text: 'Standard Buttons',
+        text: 'Botones estándar',
       },
       {
         type: 'item',
         symbol: 'check',
-        text: 'Address Bar',
+        text: 'Barra de direcciones',
       },
       {
         type: 'item',
         symbol: 'check',
-        text: 'Links',
+        text: 'Vínculos',
       },
       {
         type: 'separator',
@@ -117,18 +117,18 @@ const View = [
       {
         type: 'item',
         symbol: 'check',
-        text: 'Lock the Toolbars',
+        text: 'Bloquear las barras de herramientas',
       },
       {
         type: 'item',
-        text: 'Customize...',
+        text: 'Personalizar...',
       },
     ],
   },
   {
     type: 'item',
     symbol: 'check',
-    text: 'Status Bar',
+    text: 'Barra de estado',
   },
   {
     type: 'menu',
@@ -136,33 +136,33 @@ const View = [
       left: 'calc(100% - 4px)',
       top: '-3px',
     },
-    text: 'Explorer Bar',
+    text: 'Barra del explorador',
     items: [
       {
         type: 'item',
-        text: 'Search',
+        text: 'Buscar',
         hotkey: 'Ctrl+E',
       },
       {
         type: 'item',
-        text: 'Favorites',
+        text: 'Favoritos',
         hotkey: 'Ctrl+I',
       },
       {
         type: 'item',
-        text: 'History',
+        text: 'Historial',
         hotkey: 'Ctrl+H',
       },
       {
         type: 'item',
-        text: 'Folders',
+        text: 'Carpetas',
       },
       {
         type: 'separator',
       },
       {
         type: 'item',
-        text: 'Tip of the Day',
+        text: 'Consejo del día',
       },
     ],
   },
@@ -297,11 +297,11 @@ const View = [
 const Favorites = [
   {
     type: 'item',
-    text: 'Add to Favorites...',
+    text: 'Agregar a favoritos...',
   },
   {
     type: 'item',
-    text: 'Organize Favorites...',
+    text: 'Organizar favoritos...',
   },
   {
     type: 'separator',
@@ -356,39 +356,46 @@ const Favorites = [
 const Tools = [
   {
     type: 'item',
-    text: 'Map Network Drive...',
+    text: 'Conectar unidad de red...',
   },
   {
     type: 'item',
-    text: 'Disconnect Network Drive...',
+    text: 'Desconectar unidad de red...',
   },
   {
     type: 'item',
-    text: 'Synchronize...',
+    text: 'Sincronizar...',
   },
   {
     type: 'separator',
   },
   {
     type: 'item',
-    text: 'Folder Options...',
+    text: 'Opciones de carpeta...',
   },
 ];
 const Help = [
   {
     type: 'item',
-    text: 'Help and Support Center',
+    text: 'Centro de ayuda y soporte técnico',
   },
   {
     type: 'separator',
   },
   {
     type: 'item',
-    text: 'Is this copy of Windows legal?',
+    text: '¿Es legal esta copia de Windows?',
   },
   {
     type: 'item',
-    text: 'About Windows',
+    text: 'Acerca de Windows',
   },
 ];
-export default { File, Edit, View, Favorites, Tools, Help };
+export default { 
+  'Archivo': File, 
+  'Editar': Edit, 
+  'Ver': View, 
+  'Favoritos': Favorites, 
+  'Herramientas': Tools, 
+  'Ayuda': Help 
+};

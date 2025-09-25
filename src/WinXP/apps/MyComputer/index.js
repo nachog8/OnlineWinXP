@@ -50,7 +50,7 @@ function MyComputer({ onClose }) {
       <section className="com__function_bar">
         <div className="com__function_bar__button--disable">
           <img className="com__function_bar__icon" src={back} alt="" />
-          <span className="com__function_bar__text">Back</span>
+          <span className="com__function_bar__text">Atrás</span>
           <div className="com__function_bar__arrow" />
         </div>
         <div className="com__function_bar__button--disable">
@@ -67,7 +67,7 @@ function MyComputer({ onClose }) {
             src={search}
             alt=""
           />
-          <span className="com__function_bar__text">Search</span>
+          <span className="com__function_bar__text">Buscar</span>
         </div>
         <div className="com__function_bar__button">
           <img
@@ -75,7 +75,7 @@ function MyComputer({ onClose }) {
             src={folderOpen}
             alt=""
           />
-          <span className="com__function_bar__text">Folders</span>
+          <span className="com__function_bar__text">Carpetas</span>
         </div>
         <div className="com__function_bar__separate" />
         <div className="com__function_bar__button">
@@ -88,14 +88,14 @@ function MyComputer({ onClose }) {
         </div>
       </section>
       <section className="com__address_bar">
-        <div className="com__address_bar__title">Address</div>
+        <div className="com__address_bar__title">Dirección</div>
         <div className="com__address_bar__content">
           <img
             src={computer}
             alt="ie"
             className="com__address_bar__content__img"
           />
-          <div className="com__address_bar__content__text">Abstract Computer</div>
+          <div className="com__address_bar__content__text">Mi PC</div>
           <img
             src={dropdown}
             alt="dropdown"
@@ -104,7 +104,7 @@ function MyComputer({ onClose }) {
         </div>
         <div className="com__address_bar__go">
           <img className="com__address_bar__go__img" src={go} alt="go" />
-          <span className="com__address_bar__go__text">Go</span>
+          <span className="com__address_bar__go__text">Ir</span>
         </div>
       </section>
       <div className="com__content">
@@ -113,7 +113,7 @@ function MyComputer({ onClose }) {
             <div className="com__content__left__card">
               <div className="com__content__left__card__header">
                 <div className="com__content__left__card__header__text">
-                  System Tasks
+                  Tareas del sistema
                 </div>
                 <img
                   src={pullup}
@@ -129,7 +129,7 @@ function MyComputer({ onClose }) {
                     alt="view"
                   />
                   <div className="com__content__left__card__text link">
-                    View system information
+                    Ver información del sistema
                   </div>
                 </div>
                 <div className="com__content__left__card__row">
@@ -139,7 +139,7 @@ function MyComputer({ onClose }) {
                     alt="remove"
                   />
                   <div className="com__content__left__card__text link">
-                    Add or remove programs
+                    Agregar o quitar programas
                   </div>
                 </div>
                 <div className="com__content__left__card__row">
@@ -149,7 +149,7 @@ function MyComputer({ onClose }) {
                     alt="control"
                   />
                   <div className="com__content__left__card__text link">
-                    Change a setting
+                    Cambiar una configuración
                   </div>
                 </div>
               </div>
@@ -157,7 +157,7 @@ function MyComputer({ onClose }) {
             <div className="com__content__left__card">
               <div className="com__content__left__card__header">
                 <div className="com__content__left__card__header__text">
-                  Other Places
+                  Otros lugares
                 </div>
                 <img
                   src={pullup}
@@ -173,7 +173,7 @@ function MyComputer({ onClose }) {
                     alt="network"
                   />
                   <div className="com__content__left__card__text link">
-                    My Network Places
+                    Mis sitios de red
                   </div>
                 </div>
                 <div className="com__content__left__card__row">
@@ -183,7 +183,7 @@ function MyComputer({ onClose }) {
                     alt="document"
                   />
                   <div className="com__content__left__card__text link">
-                    My Documents
+                    Mis documentos
                   </div>
                 </div>
                 <div className="com__content__left__card__row">
@@ -193,7 +193,7 @@ function MyComputer({ onClose }) {
                     alt="folder"
                   />
                   <div className="com__content__left__card__text link">
-                    Shared Documents
+                    Documentos compartidos
                   </div>
                 </div>
                 <div className="com__content__left__card__row">
@@ -203,7 +203,7 @@ function MyComputer({ onClose }) {
                     alt="control"
                   />
                   <div className="com__content__left__card__text link">
-                    Control Panel
+                    Panel de control
                   </div>
                 </div>
               </div>
@@ -211,7 +211,7 @@ function MyComputer({ onClose }) {
             <div className="com__content__left__card">
               <div className="com__content__left__card__header">
                 <div className="com__content__left__card__header__text">
-                  Details
+                  Detalles
                 </div>
                 <img
                   src={pullup}
@@ -282,7 +282,7 @@ function MyComputer({ onClose }) {
           <div className="com__content__right">
             <div className="com__content__right__card">
               <div className="com__content__right__card__header">
-                Files Stored on This Computer
+                Archivos almacenados en este equipo
               </div>
               <div className="com__content__right__card__content">
                 <div className="com__content__right__card__item">
@@ -293,7 +293,7 @@ function MyComputer({ onClose }) {
                   />
                   <div className="com__content__right__card__img-container">
                     <div className="com__content__right__card__text">
-                      Shared Documents
+                      Documentos compartidos
                     </div>
                   </div>
                 </div>
@@ -305,7 +305,7 @@ function MyComputer({ onClose }) {
                   />
                   <div className="com__content__right__card__img-container">
                     <div className="com__content__right__card__text">
-                      User's Documents
+                      Documentos del usuario
                     </div>
                   </div>
                 </div>
@@ -313,7 +313,7 @@ function MyComputer({ onClose }) {
             </div>
             <div className="com__content__right__card">
               <div className="com__content__right__card__header">
-                Hard Disk Drives
+                Unidades de disco duro
               </div>
               <div className="com__content__right__card__content">
                 <div className="com__content__right__card__item">
@@ -324,7 +324,7 @@ function MyComputer({ onClose }) {
                   />
                   <div className="com__content__right__card__img-container">
                     <div className="com__content__right__card__text">
-                      Local Disk (C:)
+                      Disco local (C:)
                     </div>
                   </div>
                 </div>
@@ -332,7 +332,7 @@ function MyComputer({ onClose }) {
             </div>
             <div className="com__content__right__card">
               <div className="com__content__right__card__header">
-                Devices with Removable Storage
+                Dispositivos con almacenamiento extraíble
               </div>
               <div className="com__content__right__card__content">
                 <div className="com__content__right__card__item">
@@ -344,14 +344,14 @@ function MyComputer({ onClose }) {
                     />
                   </div>
                   <div className="com__content__right__card__text">
-                    CD Drive (D:)
+                    Unidad de CD (D:)
                   </div>
                 </div>
               </div>
             </div>
             <div className="com__content__right__card com__content__right__card--me">
               <div className="com__content__right__card__header">
-                About Me :)
+                Acerca de mí :)
               </div>
               <div className="com__content__right__card__content">
                 <ga.OutboundLink
@@ -379,7 +379,7 @@ function MyComputer({ onClose }) {
                     alt="control"
                   />
                   <div className="com__content__right__card__text">
-                    My Website
+                    Mi sitio web
                   </div>
                 </ga.OutboundLink>
               </div>

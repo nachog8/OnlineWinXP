@@ -1,7 +1,7 @@
 export const Game = [
   {
     type: 'item',
-    text: 'New',
+    text: 'Nuevo',
     hotkey: 'F2',
   },
   {
@@ -9,15 +9,15 @@ export const Game = [
   },
   {
     type: 'item',
-    text: 'Beginner',
+    text: 'Principiante',
   },
   {
     type: 'item',
-    text: 'Intermediate',
+    text: 'Intermedio',
   },
   {
     type: 'item',
-    text: 'Expert',
+    text: 'Experto',
   },
   {
     type: 'item',
@@ -78,4 +78,7 @@ const Help = [
     text: 'About Minesweeper',
   },
 ];
-export default { Game, Help };
+export default { 
+  'Juego': Game, 
+  'Ayuda': Help 
+};

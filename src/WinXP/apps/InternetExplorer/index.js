@@ -73,7 +73,7 @@ function InternetExplorer({ onClose }) {
           }`}
         >
           <img className="ie__function_bar__icon" src={back} alt="" />
-          <span className="ie__function_bar__text">Back</span>
+          <span className="ie__function_bar__text">Atrás</span>
           <div className="ie__function_bar__arrow" />
         </div>
         <div className="ie__function_bar__button--disable">
@@ -100,7 +100,7 @@ function InternetExplorer({ onClose }) {
             src={search}
             alt=""
           />
-          <span className="ie__function_bar__text">Search</span>
+          <span className="ie__function_bar__text">Buscar</span>
         </div>
         <div className="ie__function_bar__button">
           <img
@@ -108,7 +108,7 @@ function InternetExplorer({ onClose }) {
             src={favorite}
             alt=""
           />
-          <span className="ie__function_bar__text">Favorites</span>
+          <span className="ie__function_bar__text">Favoritos</span>
         </div>
         <div className="ie__function_bar__button">
           <img className="ie__function_bar__icon" src={history} alt="" />
@@ -133,11 +133,11 @@ function InternetExplorer({ onClose }) {
         </div>
       </section>
       <section className="ie__address_bar">
-        <div className="ie__address_bar__title">Address</div>
+        <div className="ie__address_bar__title">Dirección</div>
         <div className="ie__address_bar__content">
           <img src={ie} alt="ie" className="ie__address_bar__content__img" />
           <div className="ie__address_bar__content__text">
-            {`https://bing.com.tw${
+            {`https://www.google.com${
               state.route === 'search'
                 ? `/search?q=${encodeURIComponent(state.query)}`
                 : ''
@@ -151,11 +151,11 @@ function InternetExplorer({ onClose }) {
         </div>
         <div className="ie__address_bar__go">
           <img className="ie__address_bar__go__img" src={go} alt="go" />
-          <span className="ie__address_bar__go__text">Go</span>
+          <span className="ie__address_bar__go__text">Ir</span>
         </div>
         <div className="ie__address_bar__separate" />
         <div className="ie__address_bar__links">
-          <span className="ie__address_bar__links__text">Links</span>
+          <span className="ie__address_bar__links__text">Vínculos</span>
           <img
             className="ie__address_bar__links__img"
             src={links}

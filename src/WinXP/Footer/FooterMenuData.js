@@ -59,7 +59,7 @@ export const MyRecentDocuments = [
   {
     type: 'item',
     icon: empty,
-    text: '(Empty)',
+    text: '(Vacío)',
   },
 ];
 export const ConnectTo = [
@@ -71,24 +71,24 @@ export const ConnectTo = [
   {
     type: 'item',
     icon: connection,
-    text: 'Show all connections',
+    text: 'Mostrar todas las conexiones',
   },
 ];
 export const AllPrograms = [
   {
     type: 'item',
     icon: access,
-    text: 'Set Program Access and Defaults',
+    text: 'Establecer acceso y valores predeterminados de programa',
   },
   {
     type: 'item',
     icon: catalog,
-    text: 'Windows Catalog',
+    text: 'Catálogo de Windows',
   },
   {
     type: 'item',
     icon: update,
-    text: 'Windows Update',
+    text: 'Actualización de Windows',
   },
   {
     type: 'separator',
@@ -96,38 +96,38 @@ export const AllPrograms = [
   {
     type: 'menu',
     icon: menu,
-    text: 'Accessories',
+    text: 'Accesorios',
     items: [
       {
         type: 'menu',
         icon: menu,
-        text: 'Accessibility',
+        text: 'Accesibilidad',
         bottom: 'initial',
         items: [
           {
             type: 'item',
             icon: accessibility,
-            text: 'Accessibility Wizard',
+            text: 'Asistente para accesibilidad',
           },
           {
             type: 'item',
             icon: magnifier,
-            text: 'Magnifier',
+            text: 'Lupa',
           },
           {
             type: 'item',
             icon: narrator,
-            text: 'Narrator',
+            text: 'Narrador',
           },
           {
             type: 'item',
             icon: keyboard,
-            text: 'On-Screen Keyboard',
+            text: 'Teclado en pantalla',
           },
           {
             type: 'item',
             icon: utility,
-            text: 'Utility Manager',
+            text: 'Administrador de utilidades',
           },
         ],
       },
@@ -190,70 +190,70 @@ export const AllPrograms = [
       {
         type: 'menu',
         icon: menu,
-        text: 'System Tools',
+        text: 'Herramientas del sistema',
         bottom: 'initial',
         items: [
           {
             type: 'item',
             icon: backup,
-            text: 'Backup',
+            text: 'Copia de seguridad',
           },
           {
             type: 'item',
             icon: characterMap,
-            text: 'Character Map',
+            text: 'Mapa de caracteres',
           },
           {
             type: 'item',
             icon: cleanDisk,
-            text: 'Disk Cleanup',
+            text: 'Liberador de espacio en disco',
           },
           {
             type: 'item',
             icon: defragmenter,
-            text: 'Disk Defragmenter',
+            text: 'Desfragmentador de disco',
           },
           {
             type: 'item',
             icon: transfer,
-            text: 'Files and Settings Transfer Wizard',
+            text: 'Asistente para transferir archivos y configuraciones',
           },
           {
             type: 'item',
             icon: recent,
-            text: 'Scheduled Tasks',
+            text: 'Tareas programadas',
           },
           {
             type: 'item',
             icon: security,
-            text: 'Security Center',
+            text: 'Centro de seguridad',
           },
           {
             type: 'item',
             icon: info,
-            text: 'System Information',
+            text: 'Información del sistema',
           },
           {
             type: 'item',
             icon: restore,
-            text: 'System Restore',
+            text: 'Restaurar sistema',
           },
         ],
       },
       {
         type: 'item',
         icon: address,
-        text: 'Address Book',
+        text: 'Libreta de direcciones',
       },
       {
         type: 'item',
         icon: cmd,
-        text: 'Command Prompt',
+        text: 'Símbolo del sistema',
       },
       {
         type: 'item',
         icon: notepad,
-        text: 'Notepad',
+        text: 'Bloc de notas',
       },
       {
         type: 'item',
@@ -263,32 +263,32 @@ export const AllPrograms = [
       {
         type: 'item',
         icon: calculator,
-        text: 'Calculator',
+        text: 'Calculadora',
       },
       {
         type: 'item',
         icon: compatibility,
-        text: 'Program Compatibility Wizard',
+        text: 'Asistente de compatibilidad de programas',
       },
       {
         type: 'item',
         icon: rdp,
-        text: 'Remote Desktop Connection',
+        text: 'Conexión a Escritorio remoto',
       },
       {
         type: 'item',
         icon: sync,
-        text: 'Synchronize',
+        text: 'Sincronizar',
       },
       {
         type: 'item',
         icon: tour,
-        text: 'Tour Windows XP',
+        text: 'Recorrido por Windows XP',
       },
       {
         type: 'item',
         icon: winExplorer,
-        text: 'Windows Explorer',
+        text: 'Explorador de Windows',
       },
       {
         type: 'item',
@@ -300,7 +300,7 @@ export const AllPrograms = [
   {
     type: 'menu',
     icon: menu,
-    text: 'Games',
+    text: 'Juegos',
     items: [
       {
         type: 'item',
@@ -310,37 +310,37 @@ export const AllPrograms = [
       {
         type: 'item',
         icon: heart,
-        text: 'Hearts',
+        text: 'Corazones',
       },
       {
         type: 'item',
         icon: backgammon,
-        text: 'Internet Backgammon',
+        text: 'Backgammon de Internet',
       },
       {
         type: 'item',
         icon: checker,
-        text: 'Internet Checkers',
+        text: 'Damas de Internet',
       },
       {
         type: 'item',
         icon: onlineHeart,
-        text: 'Internet Hearts',
+        text: 'Corazones de Internet',
       },
       {
         type: 'item',
         icon: reversi,
-        text: 'Internet Reversi',
+        text: 'Reversi de Internet',
       },
       {
         type: 'item',
         icon: spade,
-        text: 'Internet Spades',
+        text: 'Picas de Internet',
       },
       {
         type: 'item',
         icon: mine,
-        text: 'Minesweeper',
+        text: 'Buscaminas',
       },
       {
         type: 'item',
@@ -350,24 +350,24 @@ export const AllPrograms = [
       {
         type: 'item',
         icon: solitaire,
-        text: 'Solitaire',
+        text: 'Solitario',
       },
       {
         type: 'item',
         icon: spider,
-        text: 'Spider Solitaire',
+        text: 'Solitario Spider',
       },
     ],
   },
   {
     type: 'menu',
     icon: menu,
-    text: 'Startup',
+    text: 'Inicio',
     items: [
       {
         type: 'item',
         icon: empty,
-        text: '(Empty)',
+        text: '(Vacío)',
       },
     ],
   },
@@ -384,7 +384,7 @@ export const AllPrograms = [
   {
     type: 'item',
     icon: networkAssistance,
-    text: 'Remote Assistance',
+    text: 'Asistencia remota',
   },
   {
     type: 'item',

@@ -25,9 +25,69 @@ function Main({ onSearch, className }) {
 //    onSearch(value);
 //  }
   return (
-    <div>
-      <iframe src="https://bing.com" title="Internet Search" onLoad="try {alert(this.contentWindow.location);} catch (e) {alert('');};" role="application" sandbox="allow-modals allow-scripts allow-same-origin allow-forms allow-popups" width="100%" height="1000px" allow="fullscreen; autoplay;" loading="lazy">
-      </iframe>
+    <div className={className}>
+      <header>
+        <div className="text">Gmail</div>
+        <div className="text">Imágenes</div>
+        <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google" />
+      </header>
+      <div className="content">
+        <img 
+          className="logo" 
+          src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" 
+          alt="Google" 
+        />
+        <div className="search-bar">
+          <input 
+            type="text" 
+            placeholder="Buscar en Google"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const query = e.target.value;
+                window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
+              }
+            }}
+          />
+          <div className="icon">
+            <img src="https://www.gstatic.com/images/branding/googlemic/2x/googlemic_color_24dp.png" alt="Mic" />
+          </div>
+        </div>
+        <div className="buttons">
+          <button onClick={() => {
+            const input = document.querySelector('input');
+            if (input && input.value) {
+              window.open(`https://www.google.com/search?q=${encodeURIComponent(input.value)}`, '_blank');
+            }
+          }}>
+            Buscar en Google
+          </button>
+          <button onClick={() => {
+            window.open('https://www.google.com/doodles', '_blank');
+          }}>
+            Voy a tener suerte
+          </button>
+        </div>
+      </div>
+      <footer>
+        <div className="upper">
+          <div className="items left">
+            <div className="item">España</div>
+          </div>
+        </div>
+        <div className="lower">
+          <div className="items left">
+            <div className="item">Publicidad</div>
+            <div className="item">Empresa</div>
+            <div className="item">Acerca de</div>
+            <div className="item">Cómo funciona la Búsqueda</div>
+          </div>
+          <div className="items right">
+            <div className="item">Privacidad</div>
+            <div className="item">Condiciones</div>
+            <div className="item">Preferencias</div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

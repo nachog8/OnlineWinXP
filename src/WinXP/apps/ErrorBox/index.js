@@ -12,7 +12,7 @@ function lineBreak(str) {
   ));
 }
 
-function Error({ onClose, message = "Something's wrong!" }) {
+function Error({ onClose, message = "¡Algo salió mal!" }) {
   useEffect(() => {
     try {
       new Audio(errorSoundSrc).play();
@@ -28,7 +28,7 @@ function Error({ onClose, message = "Something's wrong!" }) {
       </div>
       <div className="error__bottom">
         <div onClick={onClose} className="error__button">
-          <span className="error__confirm">OK</span>
+          <span className="error__confirm">Aceptar</span>
         </div>
       </div>
     </Div>
