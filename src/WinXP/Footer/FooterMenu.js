@@ -30,8 +30,16 @@ import empty from 'assets/empty.png';
 
 import { AllPrograms, ConnectTo, MyRecentDocuments } from './FooterMenuData';
 
-function FooterMenu({ className, onClick }) {
+function FooterMenu({ className, onClick, currentUser }) {
   const [hovering, setHovering] = useState('');
+  
+  // Extraer nombre de usuario del email (parte antes del @)
+  const getUserDisplayName = () => {
+    const u = currentUser;
+    if (!u || !u.email) return 'Usuario';
+    const emailParts = u.email.split('@');
+    return emailParts[0] || 'Usuario';
+  };
   function onMouseOver(e) {
     const item = e.target.closest('.menu__item');
     if (!item) return;
@@ -41,7 +49,7 @@ function FooterMenu({ className, onClick }) {
     <div className={className}>
       <header>
         <img className="header__img" src={user} alt="avatar" />
-        <span className="header__text">Usuario</span>
+        <span className="header__text">{getUserDisplayName()}</span>
       </header>
       <section className="menu" onMouseOver={onMouseOver}>
         <hr className="orange-hr" />

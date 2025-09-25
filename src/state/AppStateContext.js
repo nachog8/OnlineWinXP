@@ -85,6 +85,35 @@ export function AppStateProvider({ children }) {
   const supabase = useMemo(() => getSupabaseClient(), []);
   const [state, dispatch] = useReducer(reducer, initialData);
 
+  async function resolveUserWithRole(baseUser) {
+    if (!baseUser) return null;
+    let role = (baseUser.user_metadata && baseUser.user_metadata.role) || baseUser.role || '';
+    try {
+      if (!role && supabase && supabase.from && baseUser.id) {
+        const tryQueries = [
+          { table: 'profiles', field: 'id', value: baseUser.id },
+          { table: 'profiles', field: 'user_id', value: baseUser.id },
+          { table: 'profile',  field: 'id', value: baseUser.id },
+          { table: 'profile',  field: 'user_id', value: baseUser.id },
+          { table: 'profiles', field: 'email', value: baseUser.email },
+        ];
+        for (let i = 0; i < tryQueries.length && !role; i += 1) {
+          const q = tryQueries[i];
+          try {
+            const { data: prof } = await supabase
+              .from(q.table)
+              .select('role')
+              .eq(q.field, q.value)
+              .maybeSingle();
+            if (prof && prof.role) role = prof.role;
+          } catch (_inner) {}
+        }
+      }
+    } catch (_e) {}
+    const normalizedRole = role ? String(role).trim().toLowerCase() : '';
+    return normalizedRole ? { ...baseUser, role: normalizedRole } : baseUser;
+  }
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(PERSIST_KEY);
@@ -98,21 +127,15 @@ export function AppStateProvider({ children }) {
     supabase.auth.getSession().then(async ({ data }) => {
       if (data && data.session && data.session.user) {
         const baseUser = data.session.user;
-        let role = (baseUser.user_metadata && baseUser.user_metadata.role) || baseUser.role || '';
-        try {
-          // Si usas tabla 'profiles' con RLS (select propio), lee por uid
-          if (!role && supabase && supabase.from && baseUser.id) {
-            const { data: prof } = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', baseUser.id)
-              .maybeSingle();
-            if (prof && prof.role) role = prof.role;
-          }
-        } catch (_e) {}
-        const mergedUser = role ? { ...baseUser, role } : baseUser;
+        const mergedUser = await resolveUserWithRole(baseUser);
         dispatch({ type: ACTIONS.SET_SESSION, payload: { session: data.session, user: mergedUser } });
       }
+    });
+    // Suscripción a cambios de sesión para refrescar el rol al instante tras login/logout
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const baseUser = session && session.user ? session.user : null;
+      const mergedUser = baseUser ? await resolveUserWithRole(baseUser) : null;
+      dispatch({ type: ACTIONS.SET_SESSION, payload: { session, user: mergedUser } });
     });
     // Cargar datos iniciales desde Supabase si existen
     (async () => {
@@ -131,6 +154,9 @@ export function AppStateProvider({ children }) {
         }
       } catch (_e) {}
     })();
+    return () => {
+      try { authListener.subscription.unsubscribe(); } catch (_e) {}
+    };
   }, [supabase]);
 
   useEffect(() => {

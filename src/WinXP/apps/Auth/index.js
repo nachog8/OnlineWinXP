@@ -13,11 +13,9 @@ function Field({ label, type = 'text', value, onChange }) {
 function AuthApp() {
   const { supabase, state, dispatch, ACTIONS } = useAppState();
   const [mode, setMode] = useState('login');
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [role, setRole] = useState('Vendedor');
+  // Registro simplificado: solo email y contraseña
   const [message, setMessage] = useState('');
 
   async function onLogin() {
@@ -29,13 +27,12 @@ function AuthApp() {
   }
   async function onRegister() {
     setMessage('');
-    if (!name || !email || !password || password !== confirm) {
-      return setMessage('Valida los datos (password debe coincidir)');
-    }
+    if (!email || !password) return setMessage('Ingresa email y contraseña');
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name, role } },
+      // No enviamos metadatos; el rol se gestiona desde la tabla profiles
+      options: {},
     });
     if (error) return setMessage(error.message);
     dispatch({ type: ACTIONS.SET_SESSION, payload: { session: data.session, user: data.user } });
@@ -52,7 +49,7 @@ function AuthApp() {
     else setMessage('Si el correo existe, se envió un enlace (simulado)');
   }
   async function onUpdateProfile() {
-    const { data, error } = await supabase.auth.updateUser({ name, role });
+    const { data, error } = await supabase.auth.updateUser({});
     if (error) return setMessage(error.message);
     dispatch({ type: ACTIONS.SET_USER, payload: data.user });
     setMessage('Perfil actualizado');
@@ -80,17 +77,8 @@ function AuthApp() {
       )}
       {mode === 'register' && (
         <div>
-          <Field label="Nombre" value={name} onChange={setName} />
           <Field label="Email" value={email} onChange={setEmail} />
           <Field label="Contraseña" type="password" value={password} onChange={setPassword} />
-          <Field label="Confirmación" type="password" value={confirm} onChange={setConfirm} />
-          <div style={{ display: 'flex', marginBottom: 8 }}>
-            <div style={{ width: 120 }}>Rol</div>
-            <select value={role} onChange={e => setRole(e.target.value)}>
-              <option>Vendedor</option>
-              <option>Administrador</option>
-            </select>
-          </div>
           <button onClick={onRegister}>Crear cuenta</button>
         </div>
       )}
@@ -102,14 +90,6 @@ function AuthApp() {
       )}
       {mode === 'profile' && isLogged && (
         <div>
-          <Field label="Nombre" value={name || state.user.name || ''} onChange={setName} />
-          <div style={{ display: 'flex', marginBottom: 8 }}>
-            <div style={{ width: 120 }}>Rol</div>
-            <select value={role || state.user.role} onChange={e => setRole(e.target.value)}>
-              <option>Vendedor</option>
-              <option>Administrador</option>
-            </select>
-          </div>
           <button onClick={onUpdateProfile}>Guardar</button>{' '}
           <button onClick={onLogout}>Salir</button>
         </div>

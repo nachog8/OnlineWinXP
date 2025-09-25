@@ -230,10 +230,10 @@ function WinXP() {
       dispatch({ type: FOCUS_APP, payload: id });
     }
   }
-  function onMouseDownIcon(id) {
+  const onMouseDownIcon = useCallback((id) => {
     dispatch({ type: FOCUS_ICON, payload: id });
-  }
-  function onDoubleClickIcon(component) {
+  }, [dispatch]);
+  const onDoubleClickIcon = useCallback((component) => {
     const appSetting = Object.values(appSettings).find(
       setting => setting.component === component,
     );
@@ -253,7 +253,7 @@ function WinXP() {
       return;
     }
     dispatch({ type: ADD_APP, payload: appSetting });
-  }
+  }, [dispatch]);
   function openAdminPanel() {
     dispatch({ type: ADD_APP, payload: appSettings.Admin });
   }
@@ -309,9 +309,9 @@ function WinXP() {
   function onMouseUpDesktop(e) {
     dispatch({ type: END_SELECT });
   }
-  function onIconsSelected(iconIds) {
+  const onIconsSelected = useCallback((iconIds) => {
     dispatch({ type: SELECT_ICONS, payload: iconIds });
-  }
+  }, [dispatch]);
   async function onClickModalButton(text) {
     dispatch({ type: CANCEL_POWER_OFF });
     const t = String(text || '').toLowerCase();
@@ -364,6 +364,7 @@ function WinXP() {
             focusedAppId={focusedAppId}
             onMouseDown={onMouseDownFooter}
             onClickMenuItem={onClickMenuItem}
+            user={appState.user}
           />
         </>
       )}

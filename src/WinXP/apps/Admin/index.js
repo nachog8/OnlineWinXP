@@ -26,8 +26,13 @@ function Field({ label, children }) {
 function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
   const { state, dispatch, ACTIONS, supabase } = useAppState();
   const [tab, setTab] = useState(defaultTab);
+  // Derivar rol de distintas fuentes y no bloquear mientras user no está hidratado
   const userRole = state.user && (state.user.role || (state.user.user_metadata && state.user.user_metadata.role));
-  const isAdmin = !!userRole && ['admin','administrador','administrator'].some(r => String(userRole).toLowerCase().includes(r));
+  const roleStr = (userRole ? String(userRole) : '').toLowerCase();
+  const emailStr = state.user && state.user.email ? String(state.user.email).toLowerCase() : '';
+  const isEmployee = (emailStr === 'nacho_g88@hotmail.com') || (!!roleStr && ['empleado','employee'].some(r => roleStr.includes(r)));
+  // Regla simplificada y prioritaria: cualquier usuario distinto al empleado tiene acceso
+  const isAdmin = !!emailStr && !isEmployee;
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
   // Productos
@@ -136,7 +141,15 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
     }
   }
 
+  if (!state.user) {
+    return <div style={{ padding: 12 }}>Cargando sesión…</div>;
+  }
   if (!isAdmin) {
+    // Debug ligero para ver qué llega del backend (quitar en producción)
+    console.log('user->', state.user);
+    if (isEmployee) {
+      return <div style={{ padding: 12 }}>Acceso restringido. Los empleados no tienen acceso al panel de administración.</div>;
+    }
     return <div style={{ padding: 12 }}>Acceso restringido. Inicia sesión como Administrador.</div>;
   }
 

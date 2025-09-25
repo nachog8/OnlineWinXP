@@ -32,6 +32,7 @@ function Footer({
   focusedAppId,
   onMouseDown,
   onClickMenuItem,
+  user,
 }) {
   const [time, setTime] = useState(getTime);
   const [menuOn, setMenuOn] = useState(false);
@@ -68,7 +69,7 @@ function Footer({
     <Container onMouseDown={_onMouseDown}>
       <div className="footer__items left">
         <div ref={menu} className="footer__start__menu">
-          {menuOn && <FooterMenu onClick={_onClickMenuItem} />}
+          {menuOn && <FooterMenu onClick={_onClickMenuItem} currentUser={user} />}
         </div>
         <img
           src={startButton}

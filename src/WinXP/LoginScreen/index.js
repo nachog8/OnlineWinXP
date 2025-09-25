@@ -19,10 +19,8 @@ function Field({ label, type, value, onChange }) {
 function LoginModal({ onClose }) {
   const { supabase, dispatch, ACTIONS } = useAppState();
   const [mode, setMode] = useState('login');
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
   const [message, setMessage] = useState('');
 
   async function onLogin() {
@@ -33,13 +31,13 @@ function LoginModal({ onClose }) {
   }
   async function onRegister() {
     setMessage('');
-    if (!name || !email || !password || password !== confirm) {
-      return setMessage('Completa los campos y confirma la contraseña');
+    if (!email || !password) {
+      return setMessage('Ingresa email y contraseña');
     }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name, role: 'Cliente' } },
+      options: {},
     });
     if (error) return setMessage(error.message);
     dispatch({ type: ACTIONS.SET_SESSION, payload: { session: data.session, user: data.user } });
@@ -100,7 +98,7 @@ function LoginModal({ onClose }) {
         </div>
         {mode === 'login' && (
           <div>
-            <Field label="Usuario" type="email" value={email} onChange={setEmail} />
+            <Field label="Email" type="email" value={email} onChange={setEmail} />
             <Field label="Contraseña" type="password" value={password} onChange={setPassword} />
             <div>
               <button
@@ -119,10 +117,8 @@ function LoginModal({ onClose }) {
         )}
         {mode === 'register' && (
           <div>
-            <Field label="Nombre" type="text" value={name} onChange={setName} />
             <Field label="Email" type="email" value={email} onChange={setEmail} />
             <Field label="Contraseña" type="password" value={password} onChange={setPassword} />
-            <Field label="Confirmación" type="password" value={confirm} onChange={setConfirm} />
             <div>
               <button
                 onClick={onRegister}
