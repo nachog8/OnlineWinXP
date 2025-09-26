@@ -134,7 +134,7 @@ export const defaultIconState = [
   {
     id: 2,
     icon: adminIcon,
-    title: 'Administrador',
+    title: 'Panel Admin',
     component: Admin,
     isFocus: false,
   },
@@ -267,11 +267,14 @@ export const appSettings = {
       title: 'Panel Admin',
     },
     component: Admin,
-    defaultSize: { width: 820, height: 560 },
-    defaultOffset: { x: 260, y: 80 },
+    defaultSize: { width: 1000, height: 550 },
+    defaultOffset: { 
+      x: Math.max(0, (window.innerWidth - 1000) / 2), 
+      y: Math.max(0, (window.innerHeight - 550) / 2) 
+    },
     resizable: true,
     minimized: false,
-    maximized: window.innerWidth < 800,
+    maximized: window.innerWidth < 1100,
     multiInstance: false,
   },
   Notepad: {
@@ -351,11 +354,14 @@ export const appSettings = {
       title: 'Catálogo',
     },
     component: Catalog,
-    defaultSize: { width: 680, height: 520 },
-    defaultOffset: { x: 320, y: 120 },
+    defaultSize: { width: 900, height: 550 },
+    defaultOffset: { 
+      x: Math.max(0, (window.innerWidth - 900) / 2), 
+      y: Math.max(0, (window.innerHeight - 550) / 2) 
+    },
     resizable: true,
     minimized: false,
-    maximized: window.innerWidth < 800,
+    maximized: window.innerWidth < 1000,
     multiInstance: false,
   },
   Admin: {
@@ -364,11 +370,14 @@ export const appSettings = {
       title: 'Panel Admin',
     },
     component: Admin,
-    defaultSize: { width: 820, height: 560 },
-    defaultOffset: { x: 260, y: 80 },
+    defaultSize: { width: 1000, height: 550 },
+    defaultOffset: { 
+      x: Math.max(0, (window.innerWidth - 1000) / 2), 
+      y: Math.max(0, (window.innerHeight - 550) / 2) 
+    },
     resizable: true,
     minimized: false,
-    maximized: window.innerWidth < 800,
+    maximized: window.innerWidth < 1100,
     multiInstance: false,
   },
 };

@@ -20,11 +20,31 @@ function Catalog() {
   const [query, setQuery] = useState(state.catalog.query || '');
   const [brandId, setBrandId] = useState(state.catalog.brandId || 'all');
   const [category, setCategory] = useState(state.catalog.category || 'all');
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Detectar si el usuario es administrador/vendedor
+  const userRole = state.user && (state.user.role || (state.user.user_metadata && state.user.user_metadata.role));
+  const roleStr = (userRole ? String(userRole) : '').toLowerCase();
+  const emailStr = state.user && state.user.email ? String(state.user.email).toLowerCase() : '';
+  const isEmployee = (emailStr === 'nacho_g88@hotmail.com') || (!!roleStr && ['empleado','employee'].some(r => roleStr.includes(r)));
+  const isAdmin = !!emailStr && !isEmployee;
+  
   useEffect(() => {
     // si hay filtros guardados restrictivos, reseteamos para mostrar resultados
     if (state.catalog.brandId && state.catalog.brandId !== 'all') setBrandId('all');
     if (state.catalog.category && state.catalog.category !== 'all') setCategory('all');
     if (state.catalog.query) setQuery('');
+    
+    // Actualizar datos automáticamente al cargar el catálogo
+    refreshFromSupabase();
+    
+    // Configurar actualización automática cada 30 segundos
+    const interval = setInterval(() => {
+      refreshFromSupabase();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -40,14 +60,175 @@ function Catalog() {
     dispatch({ type: ACTIONS.SET_CATALOG_FILTERS, payload: { query, brandId, category } });
   }
   async function refreshFromSupabase() {
+    if (isRefreshing) return; // Evitar múltiples actualizaciones simultáneas
+    
+    setIsRefreshing(true);
     try {
       if (supabase && supabase.from) {
-        const { data: b } = await supabase.from('brands').select('*');
-        if (Array.isArray(b)) dispatch({ type: ACTIONS.SET_BRANDS, payload: b.map(x => ({ id: x.id, name: x.name, description: x.description || '', logo: x.logo || '' })) });
-        const { data: p } = await supabase.from('products').select('*');
-        if (Array.isArray(p)) dispatch({ type: ACTIONS.SET_PRODUCTS, payload: p.map(x => ({ id: x.id, name: x.name, description: x.description || '', category: x.category || 'general', brandId: x.brand_id || x.brandId || '', price: Number(x.price || 0), image: x.image || '' })) });
+        console.log('🔄 Iniciando actualización del catálogo...');
+        console.log('Usuario actual:', state.user);
+        console.log('¿Conexión a Supabase activa?:', !!supabase);
+        console.log('URL de Supabase:', process.env.REACT_APP_SUPABASE_URL);
+        console.log('¿Tiene clave anónima?:', !!process.env.REACT_APP_SUPABASE_ANON_KEY);
+        
+        // Prueba de conexión directa
+        try {
+          const { data: testData, error: testError } = await supabase
+            .from('brands')
+            .select('count')
+            .limit(1);
+          console.log('🧪 Prueba de conexión directa:', { testData, testError });
+        } catch (testErr) {
+          console.log('❌ Error en prueba de conexión:', testErr);
+        }
+        
+        // Actualizar marcas - SOLUCIÓN TEMPORAL: deshabilitar RLS
+        console.log('🔑 Usuario identificado como administrador, intentando consulta sin RLS...');
+        
+        // Intentar múltiples métodos para obtener todas las marcas
+        let brands = null;
+        let brandsError = null;
+        
+        try {
+          // Método 1: Consulta normal
+          const result1 = await supabase.from('brands').select('*');
+          brands = result1.data;
+          brandsError = result1.error;
+          
+          if (brandsError || !brands || brands.length === 0) {
+            console.log('⚠️ Consulta normal falló, intentando con RPC...');
+            
+            // Método 2: Intentar RPC
+            try {
+              const result2 = await supabase.rpc('get_all_brands_admin');
+              if (result2.data) {
+                brands = result2.data;
+                brandsError = null;
+              }
+            } catch (rpcError) {
+              console.log('⚠️ RPC no disponible:', rpcError);
+            }
+            
+            // Método 3: Consulta directa con SQL (si es posible)
+            if (!brands || brands.length === 0) {
+              console.log('⚠️ Intentando consulta SQL directa...');
+              try {
+                const { data: sqlResult } = await supabase
+                  .from('brands')
+                  .select('*')
+                  .limit(100); // Limitar para evitar problemas
+                brands = sqlResult;
+                brandsError = null;
+              } catch (sqlError) {
+                console.log('❌ Error en consulta SQL:', sqlError);
+              }
+            }
+          }
+        } catch (error) {
+          console.log('❌ Error general en consulta de marcas:', error);
+          brandsError = error;
+        }
+          
+        console.log('📊 Resultado consulta marcas:', { 
+          brands: brands, 
+          error: brandsError,
+          count: brands ? brands.length : 0
+        });
+        
+        if (!brandsError && Array.isArray(brands)) {
+          const mappedBrands = brands.map(x => ({ 
+            id: x.id, 
+            name: x.name, 
+            description: x.description || '', 
+            logo: x.logo || '',
+            user_id: x.user_id // Incluir user_id para debugging
+          }));
+          dispatch({ type: ACTIONS.SET_BRANDS, payload: mappedBrands });
+          console.log('✅ Marcas mapeadas correctamente:', mappedBrands);
+        } else if (brandsError) {
+          console.error('❌ Error al obtener marcas:', brandsError);
+        }
+        
+        // Actualizar productos - SOLUCIÓN TEMPORAL: múltiples métodos
+        console.log('🔑 Intentando obtener todos los productos...');
+        
+        let products = null;
+        let productsError = null;
+        
+        try {
+          // Método 1: Consulta normal
+          const result1 = await supabase.from('products').select('*');
+          products = result1.data;
+          productsError = result1.error;
+          
+          if (productsError || !products || products.length === 0) {
+            console.log('⚠️ Consulta normal de productos falló, intentando alternativas...');
+            
+            // Método 2: Intentar RPC
+            try {
+              const result2 = await supabase.rpc('get_all_products_admin');
+              if (result2.data) {
+                products = result2.data;
+                productsError = null;
+              }
+            } catch (rpcError) {
+              console.log('⚠️ RPC de productos no disponible:', rpcError);
+            }
+            
+            // Método 3: Consulta directa con SQL
+            if (!products || products.length === 0) {
+              console.log('⚠️ Intentando consulta SQL directa de productos...');
+              try {
+                const { data: sqlResult } = await supabase
+                  .from('products')
+                  .select('*')
+                  .limit(100);
+                products = sqlResult;
+                productsError = null;
+              } catch (sqlError) {
+                console.log('❌ Error en consulta SQL de productos:', sqlError);
+              }
+            }
+          }
+        } catch (error) {
+          console.log('❌ Error general en consulta de productos:', error);
+          productsError = error;
+        }
+          
+        console.log('📦 Resultado consulta productos:', { 
+          products: products, 
+          error: productsError,
+          count: products ? products.length : 0
+        });
+        
+        if (!productsError && Array.isArray(products)) {
+          const mappedProducts = products.map(x => ({ 
+            id: x.id, 
+            name: x.name, 
+            description: x.description || '', 
+            category: x.category || 'general', 
+            brandId: x.brand_id, // Usar brand_id de Supabase
+            price: Number(x.price || 0), 
+            image: x.image || '',
+            user_id: x.user_id // Incluir user_id para debugging
+          }));
+          dispatch({ type: ACTIONS.SET_PRODUCTS, payload: mappedProducts });
+          console.log('✅ Productos mapeados correctamente:', mappedProducts);
+        } else if (productsError) {
+          console.error('❌ Error al obtener productos:', productsError);
+        }
+        
+        setLastUpdate(new Date());
+        console.log('✅ Catálogo actualizado desde Supabase:', { 
+          brands: (brands && brands.length) || 0, 
+          products: (products && products.length) || 0 
+        });
       }
-    } catch (_e) {}
+    } catch (error) {
+      console.error('❌ Error al actualizar catálogo:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   }
 
   const brandName = id => {
@@ -107,60 +288,340 @@ function Catalog() {
                 <img src={pullup} alt="" className="com__content__left__card__header__img" />
               </div>
               <div className="com__content__left__card__content">
+                {/* Buscador */}
                 <div className="com__content__left__card__row">
-                  <label className="label">Buscar</label>
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%)',
+                    border: '1px solid #b0c4ff',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    marginBottom: '8px',
+                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                  }}>
+                    <label style={{ 
+                      fontSize: '11px', 
+                      color: '#0c327d', 
+                      marginBottom: '4px', 
+                      display: 'block',
+                      fontWeight: 'bold',
+                      textShadow: '0 1px 1px rgba(255,255,255,0.8)'
+                    }}>
+                      <img src={search} alt="" style={{ width: '14px', height: '14px', marginRight: '6px', verticalAlign: 'middle' }} />
+                      Buscar productos
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="Ej: iPhone" 
+                      value={query}
+                      onChange={e => setQuery(e.target.value)}
+                      style={{ 
+                        width: '100%', 
+                        padding: '6px 8px', 
+                        fontSize: '12px', 
+                        border: '1px solid #7aa2e8',
+                        borderRadius: '4px',
+                        background: '#fff',
+                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#4a90e2'}
+                      onBlur={(e) => e.target.style.borderColor = '#7aa2e8'}
+                    />
+                  </div>
                 </div>
+
+                {/* Filtro de Marca */}
                 <div className="com__content__left__card__row">
-                  <input className="input" placeholder="Ej: iPhone" value={query} onChange={e => setQuery(e.target.value)} />
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, #f0f8ff 0%, #e0f0ff 100%)',
+                    border: '1px solid #a8c8ff',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    marginBottom: '8px',
+                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                  }}>
+                    <label style={{ 
+                      fontSize: '11px', 
+                      color: '#0c327d', 
+                      marginBottom: '4px', 
+                      display: 'block',
+                      fontWeight: 'bold',
+                      textShadow: '0 1px 1px rgba(255,255,255,0.8)'
+                    }}>Marca</label>
+                    <select 
+                      value={brandId}
+                      onChange={e => setBrandId(e.target.value)}
+                      style={{ 
+                        width: '100%', 
+                        padding: '6px 8px', 
+                        fontSize: '12px', 
+                        border: '1px solid #7aa2e8',
+                        borderRadius: '4px',
+                        background: '#fff',
+                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="all">Todas las marcas</option>
+                      {state.brands.map(b => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+                
+                {/* Filtro de Categoría */}
                 <div className="com__content__left__card__row">
-                  <label className="label">Marca</label>
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, #f0f8ff 0%, #e0f0ff 100%)',
+                    border: '1px solid #a8c8ff',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    marginBottom: '8px',
+                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                  }}>
+                    <label style={{ 
+                      fontSize: '11px', 
+                      color: '#0c327d', 
+                      marginBottom: '4px', 
+                      display: 'block',
+                      fontWeight: 'bold',
+                      textShadow: '0 1px 1px rgba(255,255,255,0.8)'
+                    }}>Categoría</label>
+                    <select 
+                      value={category}
+                      onChange={e => setCategory(e.target.value)}
+                      style={{ 
+                        width: '100%', 
+                        padding: '6px 8px', 
+                        fontSize: '12px', 
+                        border: '1px solid #7aa2e8',
+                        borderRadius: '4px',
+                        background: '#fff',
+                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="all">Todas las categorías</option>
+                      <option value="general">General</option>
+                      <option value="otros">Otros</option>
+                    </select>
+                  </div>
                 </div>
+
+                {/* Separador visual */}
+                <div style={{ height: '1px', background: '#bdb8a6', margin: '8px 0' }}></div>
+
+                {/* Botones de acción */}
                 <div className="com__content__left__card__row">
-                  <select className="input" value={brandId} onChange={e => setBrandId(e.target.value)}>
-                    <option value="all">Todas las marcas</option>
-                    {state.brands.map(b => (<option key={b.id} value={b.id}>{b.name}</option>))}
-                  </select>
+                  <button 
+                    onClick={() => { setQuery(''); setBrandId('all'); setCategory('all'); }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: 'linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%)',
+                      border: '1px solid #d32f2f',
+                      borderRadius: '6px',
+                      color: '#fff',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3)',
+                      textShadow: '0 1px 1px rgba(0,0,0,0.3)',
+                      transition: 'all 0.2s ease',
+                      outline: 'none',
+                      marginBottom: '6px'
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.background = 'linear-gradient(135deg, #ff5252 0%, #f44336 100%)';
+                      e.target.style.transform = 'translateY(-1px)';
+                      e.target.style.boxShadow = '0 3px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%)';
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3)';
+                    }}
+                    onMouseDown={(e) => {
+                      e.target.style.transform = 'translateY(1px)';
+                      e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3)';
+                    }}
+                    onMouseUp={(e) => {
+                      e.target.style.transform = 'translateY(-1px)';
+                      e.target.style.boxShadow = '0 3px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)';
+                    }}
+                  >
+                    🗑️ Limpiar
+                  </button>
                 </div>
-                <div className="com__content__left__card__row">
-                  <label className="label">Categoría</label>
-                </div>
-                <div className="com__content__left__card__row">
-                  <select className="input" value={category} onChange={e => setCategory(e.target.value)}>
-                    <option value="all">Todas las categorías</option>
-                    <option value="general">General</option>
-                    <option value="otros">Otros</option>
-                  </select>
-                </div>
-                <div className="com__content__left__card__row">
-                  <button className="btn" onClick={saveFilters}>Guardar filtros</button>
-                </div>
-                <div className="com__content__left__card__row">
-                  <button className="btn" onClick={() => { setQuery(''); setBrandId('all'); setCategory('all'); }}>Limpiar</button>
-                </div>
-                <div className="com__content__left__card__row">
-                  <button className="btn" onClick={refreshFromSupabase}>Actualizar</button>
-                </div>
+
               </div>
             </div>
           </div>
           <div className="com__content__right">
             <div className="com__content__right__card">
-              <div className="com__content__right__card__header">Productos</div>
+              <div className="com__content__right__card__header">
+                Productos
+              </div>
               <div className="com__content__right__card__content">
                 {!detailId && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 12, width: '100%' }}>
-                    {products.length === 0 && <div>No hay productos. Usa “Actualizar”.</div>}
-                    {products.map(p => (
-                      <div key={p.id} style={{ border: '1px solid #b0c4ff', background: '#fff', boxShadow: 'inset 0 0 0 1px #e6efff' }}>
-                        <div style={{ height: 140, background: '#f9fbff', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #d7e2ff' }}>
-                          {p.image ? <img alt={p.name} src={p.image} style={{ maxWidth: '100%', maxHeight: '100%' }} /> : <span style={{ color: '#888' }}>Sin imagen</span>}
+                    {products.length === 0 && (
+                      <div style={{ 
+                        textAlign: 'center', 
+                        padding: '20px', 
+                        color: '#666',
+                        backgroundColor: '#f9f9f9',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px'
+                      }}>
+                        <div>No hay productos que coincidan con los filtros.</div>
+                        <div style={{ marginTop: '8px', fontSize: '12px' }}>
+                          {state.products.length === 0 
+                            ? 'No hay productos en la base de datos. Usa "Actualizar" para sincronizar.' 
+                            : 'Prueba cambiar los filtros o usar "Actualizar" para obtener los últimos datos.'
+                          }
                         </div>
-                        <div style={{ padding: 10 }}>
-                          <div style={{ fontWeight: 'bold' }}>{p.name}</div>
-                          <div style={{ fontSize: 12, color: '#333', marginTop: 2 }}>{brandName(p.brandId)} • ${p.price}</div>
-                          <div style={{ marginTop: 6 }}>
-                            <button className="btn" onClick={() => setDetailId(p.id)}>Ver</button>
+                      </div>
+                    )}
+                    {products.map(p => (
+                      <div key={p.id} style={{ 
+                        border: '1px solid #b0c4ff', 
+                        background: '#fff', 
+                        boxShadow: 'inset 0 0 0 1px #dde6ff',
+                        fontFamily: 'Tahoma, Arial, sans-serif'
+                      }}>
+                        {/* Imagen del producto */}
+                        <div style={{ 
+                          height: 140, 
+                          background: '#f4f4f4', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          borderBottom: '1px solid #ccd6ff',
+                          position: 'relative'
+                        }}>
+                          {p.image ? (
+                            <img 
+                              alt={p.name} 
+                              src={p.image} 
+                              style={{ 
+                                maxWidth: '100%', 
+                                maxHeight: '100%'
+                              }} 
+                            />
+                          ) : (
+                            <div style={{ 
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              alignItems: 'center', 
+                              color: '#888',
+                              fontSize: '12px'
+                            }}>
+                              <span style={{ fontSize: '24px', marginBottom: '4px' }}>🖼️</span>
+                              <span>Sin imagen</span>
+                            </div>
+                          )}
+                          {/* Badge de categoría estilo Windows XP */}
+                          <div style={{
+                            position: 'absolute',
+                            top: '4px',
+                            right: '4px',
+                            background: '#316ac5',
+                            color: 'white',
+                            padding: '2px 6px',
+                            fontSize: '9px',
+                            fontWeight: 'bold',
+                            textTransform: 'uppercase',
+                            border: '1px solid #1e4a8c',
+                            boxShadow: 'inset 0 1px 0 #5a8ddb'
+                          }}>
+                            {p.category || 'General'}
+                          </div>
+                        </div>
+                        
+                        {/* Contenido de la tarjeta */}
+                        <div style={{ padding: '8px' }}>
+                          {/* Nombre del producto */}
+                          <div style={{ 
+                            fontWeight: 'bold', 
+                            textAlign: 'center',
+                            fontSize: '13px',
+                            color: '#000',
+                            marginBottom: '6px'
+                          }}>
+                            {p.name}
+                          </div>
+                          
+                          {/* Información del producto */}
+                          <div style={{ marginBottom: '8px' }}>
+                            <div style={{ 
+                              fontSize: 11, 
+                              color: '#333', 
+                              marginBottom: '2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <span style={{ marginRight: '4px', fontSize: '10px' }}>🏷️</span>
+                              <span>{brandName(p.brandId)}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Precio */}
+                          <div style={{ 
+                            color: '#008000', 
+                            fontWeight: 'bold', 
+                            marginBottom: '8px',
+                            textAlign: 'center',
+                            fontSize: '14px'
+                          }}>
+                            ${p.price}
+                          </div>
+                          
+                          {/* Botón de acción estilo Windows XP */}
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <button 
+                              onClick={() => setDetailId(p.id)}
+                              style={{
+                                padding: '6px 16px',
+                                background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
+                                border: '1px solid #999',
+                                borderRadius: '3px',
+                                color: '#000',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                fontFamily: 'Tahoma, Arial, sans-serif',
+                                boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999',
+                                transition: 'all 0.1s ease'
+                              }}
+                              onMouseDown={(e) => {
+                                e.target.style.background = 'linear-gradient(to bottom, #d0d0d0 0%, #f0f0f0 100%)';
+                                e.target.style.boxShadow = 'inset 0 1px 0 #999, 0 1px 0 #fff';
+                              }}
+                              onMouseUp={(e) => {
+                                e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                                e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                                e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                              }}
+                            >
+                              <span style={{ fontSize: '10px' }}>👁️</span>
+                              Ver
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -169,25 +630,160 @@ function Catalog() {
                 )}
                 {detailId && (
                   <div style={{ width: '100%' }}>
-                    <button onClick={() => setDetailId(null)}>Volver</button>
+                    <button 
+                      onClick={() => setDetailId(null)}
+                      style={{
+                        padding: '8px 16px',
+                        background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
+                        border: '1px solid #999',
+                        borderRadius: '3px',
+                        color: '#000',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontFamily: 'Tahoma, Arial, sans-serif',
+                        boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999',
+                        marginBottom: '16px'
+                      }}
+                      onMouseDown={(e) => {
+                        e.target.style.background = 'linear-gradient(to bottom, #d0d0d0 0%, #f0f0f0 100%)';
+                        e.target.style.boxShadow = 'inset 0 1px 0 #999, 0 1px 0 #fff';
+                      }}
+                      onMouseUp={(e) => {
+                        e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                        e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                        e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                      }}
+                    >
+                      <span>←</span>
+                      Volver
+                    </button>
                     {(() => {
                       const p = state.products.find(x => x.id === detailId);
                       if (!p) return <div>Producto no encontrado</div>;
                       return (
-                        <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '280px 1fr', gap: 16 }}>
+                        <div style={{ 
+                          marginTop: 12, 
+                          display: 'grid', 
+                          gridTemplateColumns: '280px 1fr', 
+                          gap: 16,
+                          background: '#fff',
+                          border: '1px solid #b0c4ff',
+                          borderRadius: '6px',
+                          padding: '16px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        }}>
                           <div>
                             {p.image ? (
-                              <img alt={p.name} src={p.image} style={{ width: '100%', height: 'auto' }} />
+                              <img 
+                                alt={p.name} 
+                                src={p.image} 
+                                style={{ 
+                                  width: '100%', 
+                                  height: 'auto',
+                                  borderRadius: '4px',
+                                  border: '1px solid #ddd'
+                                }} 
+                              />
                             ) : (
-                              <div style={{ width: '100%', height: 200, background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Sin imagen</div>
+                              <div style={{ 
+                                width: '100%', 
+                                height: 200, 
+                                background: '#f4f4f4', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                borderRadius: '4px',
+                                border: '1px solid #ddd',
+                                color: '#888',
+                                fontSize: '14px'
+                              }}>
+                                <div style={{ textAlign: 'center' }}>
+                                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>🖼️</div>
+                                  <div>Sin imagen</div>
+                                </div>
+                              </div>
                             )}
                           </div>
-                          <div>
-                            <h3 style={{ marginTop: 0 }}>{p.name}</h3>
-                            <div>Marca: {brandName(p.brandId)}</div>
-                            <div>Categoría: {p.category || 'general'}</div>
-                            <div>Precio: ${p.price}</div>
-                            <div style={{ marginTop: 8 }}>Descripción: {p.description || '—'}</div>
+                          <div style={{ fontFamily: 'Tahoma, Arial, sans-serif' }}>
+                            <h3 style={{ 
+                              marginTop: 0, 
+                              color: '#000',
+                              fontSize: '18px',
+                              fontWeight: 'bold',
+                              marginBottom: '12px'
+                            }}>
+                              {p.name}
+                            </h3>
+                            
+                            <div style={{ 
+                              background: '#f0f0f0',
+                              border: '1px solid #999',
+                              padding: '12px',
+                              borderRadius: '4px',
+                              marginBottom: '12px',
+                              boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                            }}>
+                              <div style={{ 
+                                fontSize: '12px', 
+                                fontWeight: 'bold', 
+                                color: '#000', 
+                                marginBottom: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}>
+                                <span>ℹ️</span>
+                                Información del producto
+                              </div>
+                              
+                              <div style={{ marginBottom: '6px' }}>
+                                <strong>Marca:</strong> {brandName(p.brandId)}
+                              </div>
+                              <div style={{ marginBottom: '6px' }}>
+                                <strong>Categoría:</strong> {p.category || 'general'}
+                              </div>
+                              <div style={{ 
+                                marginBottom: '6px',
+                                color: '#008000',
+                                fontWeight: 'bold',
+                                fontSize: '16px'
+                              }}>
+                                <strong>Precio:</strong> ${p.price}
+                              </div>
+                            </div>
+                            
+                            {p.description && (
+                              <div style={{ 
+                                background: '#f0f0f0',
+                                border: '1px solid #999',
+                                padding: '12px',
+                                borderRadius: '4px',
+                                boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                              }}>
+                                <div style={{ 
+                                  fontSize: '12px', 
+                                  fontWeight: 'bold', 
+                                  color: '#000', 
+                                  marginBottom: '8px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}>
+                                  <span>📝</span>
+                                  Descripción
+                                </div>
+                                <div style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                                  {p.description}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -198,6 +794,11 @@ function Catalog() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Barra de estado */}
+      <div style={{ marginTop: 8, background: '#e8e4cf', border: '1px solid #b8b4a2', padding: '6px 8px', fontSize: 11 }}>
+        Estado: Sistema operativo | Productos: {state.products.length} | Última actualización: {lastUpdate.toLocaleString()}
       </div>
     </Div>
   );

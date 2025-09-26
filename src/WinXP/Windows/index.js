@@ -52,10 +52,10 @@ const Window = memo(function({
   function _onMouseDown({ detail }) {
     onMouseDown(id);
 
-    // Detects double click
-    if (detail === 2) {
-      _onMouseUpMaximize();
-    }
+    // Detects double click - DISABLED
+    // if (detail === 2) {
+    //   _onMouseUpMaximize();
+    // }
   }
   function _onMouseUpClose() {
     onMouseUpClose(id);
@@ -125,7 +125,7 @@ const Window = memo(function({
         />
       </header>
       <div className="app__content">
-        {component({
+        {React.createElement(component, {
           onClose: _onMouseUpClose,
           onMinimize: _onMouseUpMinimize,
           isFocus,

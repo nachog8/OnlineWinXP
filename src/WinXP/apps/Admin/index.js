@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useAppState } from 'state/AppStateContext';
+// FontAwesome removed due to compatibility issues - using Unicode icons instead
 import search from 'assets/windowsIcons/299(32x32).png';
 import folderOpen from 'assets/windowsIcons/337(32x32).png';
 import go from 'assets/windowsIcons/290.png';
@@ -13,6 +14,8 @@ import mcDropDownData from 'WinXP/apps/MyComputer/dropDownData';
 import back from 'assets/windowsIcons/back.png';
 import forward from 'assets/windowsIcons/forward.png';
 import up from 'assets/windowsIcons/up.png';
+import edit from 'assets/windowsIcons/edit.png';
+import refresh from 'assets/windowsIcons/refresh.png';
 
 function Field({ label, children }) {
   return (
@@ -34,6 +37,15 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
   // Regla simplificada y prioritaria: cualquier usuario distinto al empleado tiene acceso
   const isAdmin = !!emailStr && !isEmployee;
   const [lastUpdate, setLastUpdate] = useState(new Date());
+
+  // Filtros y búsqueda
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterBrand, setFilterBrand] = useState('all');
+  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+  
+  // Control de visibilidad del formulario de nuevo producto
+  const [showNewProductForm, setShowNewProductForm] = useState(false);
 
   // Productos
   const [pId, setPId] = useState('');
@@ -57,11 +69,73 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
     return true;
   }, [pName, pBrandId, pPrice]);
 
+  // Filtros para productos
+  const filteredProducts = useMemo(() => {
+    let filtered = state.products;
+    
+    if (searchQuery) {
+      filtered = filtered.filter(p => 
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.description.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    if (filterCategory !== 'all') {
+      filtered = filtered.filter(p => p.category === filterCategory);
+    }
+    
+    if (filterBrand !== 'all') {
+      filtered = filtered.filter(p => p.brandId === filterBrand);
+    }
+    
+    if (priceRange.min !== '') {
+      filtered = filtered.filter(p => p.price >= Number(priceRange.min));
+    }
+    
+    if (priceRange.max !== '') {
+      filtered = filtered.filter(p => p.price <= Number(priceRange.max));
+    }
+    
+    return filtered;
+  }, [state.products, searchQuery, filterCategory, filterBrand, priceRange]);
+
+  // Filtros para marcas
+  const filteredBrands = useMemo(() => {
+    let filtered = state.brands;
+    
+    if (searchQuery) {
+      filtered = filtered.filter(b => 
+        b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.description.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  }, [state.brands, searchQuery]);
+
   function clearProductForm() {
     setPId(''); setPName(''); setPDesc(''); setPCategory('general'); setPBrandId(''); setPPrice('0'); setPImage(''); setPPreview('');
+    setShowNewProductForm(false);
+  }
+  
+  function showNewProduct() {
+    clearProductForm();
+    setShowNewProductForm(true);
   }
   function clearBrandForm() {
     setBId(''); setBName(''); setBDesc(''); setBLogo('');
+  }
+
+  function clearFilters() {
+    setSearchQuery('');
+    setFilterCategory('all');
+    setFilterBrand('all');
+    setPriceRange({ min: '', max: '' });
+  }
+
+  function handleSearch() {
+    // La búsqueda se maneja automáticamente con el estado searchQuery
+    // Esta función puede ser llamada desde el botón "Buscar" de la barra
   }
 
   function loadProduct(id) {
@@ -75,6 +149,7 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
     setPPrice(String(p.price || 0));
     setPImage(p.image || '');
     setPPreview(p.image || '');
+    setShowNewProductForm(false);
   }
   async function saveProduct() {
     if (!canSaveProduct) return;
@@ -91,6 +166,7 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
     } catch (_e) {}
     dispatch({ type: ACTIONS.UPSERT_PRODUCT, payload: { id: payload.id, name: pName, description: pDesc, category: pCategory, brandId: pBrandId, price: Number(pPrice), image: pImage } });
     clearProductForm();
+    setShowNewProductForm(false);
     setLastUpdate(new Date());
   }
   async function deleteProduct(id) {
@@ -178,13 +254,21 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
           <img className="com__function_bar__icon--normalize" src={up} alt="" />
         </div>
         <div className="com__function_bar__separate" />
-        <div className="com__function_bar__button">
+        <div className="com__function_bar__button" onClick={handleSearch}>
           <img className="com__function_bar__icon--normalize" src={search} alt="" />
           <span className="com__function_bar__text">Buscar</span>
         </div>
         <div className="com__function_bar__button">
           <img className="com__function_bar__icon--normalize" src={folderOpen} alt="" />
           <span className="com__function_bar__text">Carpetas</span>
+        </div>
+        <div className={`com__function_bar__button ${tab === 'products' ? 'com__function_bar__button--active' : ''}`} onClick={() => setTab('products')}>
+          <img className="com__function_bar__icon--normalize" src={folderOpen} alt="" />
+          <span className="com__function_bar__text">Productos</span>
+        </div>
+        <div className={`com__function_bar__button ${tab === 'brands' ? 'com__function_bar__button--active' : ''}`} onClick={() => setTab('brands')}>
+          <img className="com__function_bar__icon--normalize" src={folderOpen} alt="" />
+          <span className="com__function_bar__text">Marcas</span>
         </div>
       </section>
       <section className="com__address_bar">
@@ -209,11 +293,267 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                 <img src={pullup} alt="" className="com__content__left__card__header__img" />
               </div>
               <div className="com__content__left__card__content">
-                <div className="com__content__left__card__row"><button style={btn()} onClick={() => setTab('products')}>Productos</button></div>
-                <div className="com__content__left__card__row"><button style={btn()} onClick={() => setTab('brands')}>Marcas</button></div>
-                {tab === 'products' && <div className="com__content__left__card__row"><button style={btn()} onClick={clearProductForm}>Nuevo producto</button></div>}
-                {tab === 'brands' && <div className="com__content__left__card__row"><button style={btn()} onClick={clearBrandForm}>Nueva marca</button></div>}
-                <div className="com__content__left__card__row" style={{ color: '#0c327d' }}>Total: {tab === 'products' ? `${totalProducts} productos` : `${totalBrands} marcas`}</div>
+                {/* Acciones de creación */}
+                {tab === 'products' && (
+                  <div className="com__content__left__card__row">
+                    <button style={btn()} onClick={showNewProductForm ? clearProductForm : showNewProduct}>
+                      <img src={edit} alt="" style={{ width: '16px', height: '16px', marginRight: '4px' }} />
+                      {showNewProductForm ? 'Ocultar formulario' : 'Nuevo producto'}
+                    </button>
+                  </div>
+                )}
+                {tab === 'brands' && (
+                  <div className="com__content__left__card__row">
+                    <button style={btn()} onClick={clearBrandForm}>
+                      <img src={edit} alt="" style={{ width: '16px', height: '16px', marginRight: '4px' }} />
+                      Nueva marca
+                    </button>
+                  </div>
+                )}
+                
+                {/* Separador visual */}
+                <div style={{ height: '1px', background: '#bdb8a6', margin: '8px 0' }}></div>
+                
+                {/* Buscador */}
+                <div className="com__content__left__card__row">
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%)',
+                    border: '1px solid #b0c4ff',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    marginBottom: '8px',
+                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                  }}>
+                    <label style={{ 
+                      fontSize: '11px', 
+                      color: '#0c327d', 
+                      marginBottom: '4px', 
+                      display: 'block',
+                      fontWeight: 'bold',
+                      textShadow: '0 1px 1px rgba(255,255,255,0.8)'
+                    }}>
+                      <img src={search} alt="" style={{ width: '14px', height: '14px', marginRight: '6px', verticalAlign: 'middle' }} />
+                      Buscar productos
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="Escriba para buscar..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{ 
+                        width: '100%', 
+                        padding: '6px 8px', 
+                        fontSize: '12px', 
+                        border: '1px solid #7aa2e8',
+                        borderRadius: '4px',
+                        background: '#fff',
+                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#4a90e2'}
+                      onBlur={(e) => e.target.style.borderColor = '#7aa2e8'}
+                    />
+                  </div>
+                </div>
+
+                {/* Filtros para productos */}
+                {tab === 'products' && (
+                  <>
+                    <div className="com__content__left__card__row">
+                      <div style={{ 
+                        background: 'linear-gradient(135deg, #f0f8ff 0%, #e0f0ff 100%)',
+                        border: '1px solid #a8c8ff',
+                        borderRadius: '6px',
+                        padding: '8px',
+                        marginBottom: '8px',
+                        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                      }}>
+                        <label style={{ 
+                          fontSize: '11px', 
+                          color: '#0c327d', 
+                          marginBottom: '4px', 
+                          display: 'block',
+                          fontWeight: 'bold',
+                          textShadow: '0 1px 1px rgba(255,255,255,0.8)'
+                        }}>Categoría</label>
+                        <select 
+                          value={filterCategory}
+                          onChange={(e) => setFilterCategory(e.target.value)}
+                          style={{ 
+                            width: '100%', 
+                            padding: '6px 8px', 
+                            fontSize: '12px', 
+                            border: '1px solid #7aa2e8',
+                            borderRadius: '4px',
+                            background: '#fff',
+                            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)',
+                            outline: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="all">Todas las categorías</option>
+                          <option value="general">General</option>
+                          <option value="otros">Otros</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="com__content__left__card__row">
+                      <div style={{ 
+                        background: 'linear-gradient(135deg, #f0f8ff 0%, #e0f0ff 100%)',
+                        border: '1px solid #a8c8ff',
+                        borderRadius: '6px',
+                        padding: '8px',
+                        marginBottom: '8px',
+                        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                      }}>
+                        <label style={{ 
+                          fontSize: '11px', 
+                          color: '#0c327d', 
+                          marginBottom: '4px', 
+                          display: 'block',
+                          fontWeight: 'bold',
+                          textShadow: '0 1px 1px rgba(255,255,255,0.8)'
+                        }}>Marca</label>
+                        <select 
+                          value={filterBrand}
+                          onChange={(e) => setFilterBrand(e.target.value)}
+                          style={{ 
+                            width: '100%', 
+                            padding: '6px 8px', 
+                            fontSize: '12px', 
+                            border: '1px solid #7aa2e8',
+                            borderRadius: '4px',
+                            background: '#fff',
+                            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)',
+                            outline: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="all">Todas las marcas</option>
+                          {state.brands.map(b => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="com__content__left__card__row">
+                      <div style={{ 
+                        background: 'linear-gradient(135deg, #f8fff0 0%, #e8ffe0 100%)',
+                        border: '1px solid #a8ffa8',
+                        borderRadius: '6px',
+                        padding: '8px',
+                        marginBottom: '8px',
+                        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                      }}>
+                        <label style={{ 
+                          fontSize: '11px', 
+                          color: '#0c327d', 
+                          marginBottom: '4px', 
+                          display: 'block',
+                          fontWeight: 'bold',
+                          textShadow: '0 1px 1px rgba(255,255,255,0.8)'
+                        }}>Rango de Precios</label>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: '10px', color: '#666', marginBottom: '2px', display: 'block' }}>Mín.</label>
+                            <input 
+                              type="number" 
+                              placeholder="0" 
+                              value={priceRange.min}
+                              onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value }))}
+                              style={{ 
+                                width: '100%', 
+                                padding: '4px 6px', 
+                                fontSize: '11px', 
+                                border: '1px solid #7aa2e8',
+                                borderRadius: '3px',
+                                background: '#fff',
+                                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                outline: 'none'
+                              }}
+                            />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: '10px', color: '#666', marginBottom: '2px', display: 'block' }}>Máx.</label>
+                            <input 
+                              type="number" 
+                              placeholder="∞" 
+                              value={priceRange.max}
+                              onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
+                              style={{ 
+                                width: '100%', 
+                                padding: '4px 6px', 
+                                fontSize: '11px', 
+                                border: '1px solid #7aa2e8',
+                                borderRadius: '3px',
+                                background: '#fff',
+                                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                outline: 'none'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Separador visual */}
+                <div style={{ height: '1px', background: '#bdb8a6', margin: '8px 0' }}></div>
+
+                {/* Botón limpiar filtros */}
+                <div className="com__content__left__card__row">
+                  <button 
+                    onClick={clearFilters}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: 'linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%)',
+                      border: '1px solid #d32f2f',
+                      borderRadius: '6px',
+                      color: '#fff',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3)',
+                      textShadow: '0 1px 1px rgba(0,0,0,0.3)',
+                      transition: 'all 0.2s ease',
+                      outline: 'none'
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.background = 'linear-gradient(135deg, #ff5252 0%, #f44336 100%)';
+                      e.target.style.transform = 'translateY(-1px)';
+                      e.target.style.boxShadow = '0 3px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%)';
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3)';
+                    }}
+                    onMouseDown={(e) => {
+                      e.target.style.transform = 'translateY(1px)';
+                      e.target.style.boxShadow = '0 1px 2px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3)';
+                    }}
+                    onMouseUp={(e) => {
+                      e.target.style.transform = 'translateY(-1px)';
+                      e.target.style.boxShadow = '0 3px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)';
+                    }}
+                  >
+                    <img src={refresh} alt="" style={{ width: '16px', height: '16px', marginRight: '6px' }} />
+                    Limpiar filtros
+                  </button>
+                </div>
+                
+                {/* Contador */}
+                <div className="com__content__left__card__row" style={{ color: '#0c327d', marginTop: '8px', fontSize: '10px' }}>
+                  Total: {tab === 'products' ? `${filteredProducts.length} de ${totalProducts} productos` : `${filteredBrands.length} de ${totalBrands} marcas`}
+                </div>
               </div>
             </div>
           </div>
@@ -239,30 +579,177 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
         </div>
       </div>
       )}
-      <div style={{ marginBottom: 8 }}>
-        <button style={btn()} onClick={() => setTab('products')}>Productos</button>{' '}
-        <button style={btn()} onClick={() => setTab('brands')}>Marcas</button>
-      </div>
 
       {tab === 'products' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, flex: 1 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: (pId || showNewProductForm) ? '2fr 1fr' : '1fr', gap: 12, flex: 1 }}>
           <div style={{ overflow: 'auto' }}>
-            <div style={groupHeader()}>Catálogo de Productos</div>
+            <div style={groupHeader()}>Productos</div>
             <div style={groupBody()}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12 }}>
-              {state.products.map(p => (
-                <div key={p.id} style={{ border: '1px solid #b0c4ff', background: '#fff', boxShadow: 'inset 0 0 0 1px #dde6ff' }}>
-                  <div style={{ height: 140, background: '#f4f4f4', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #ccd6ff' }}>
-                    {p.image ? <img alt={p.name} src={p.image} style={{ maxWidth: '100%', maxHeight: '100%' }} /> : <span style={{ color: '#888' }}>Sin imagen</span>}
+            <div style={{ display: 'grid', gridTemplateColumns: (pId || showNewProductForm) ? 'repeat(auto-fill,minmax(240px,1fr))' : 'repeat(auto-fill,minmax(280px,1fr))', gap: 12 }}>
+              {filteredProducts.map(p => (
+                <div key={p.id} style={{ 
+                  border: '1px solid #b0c4ff', 
+                  background: '#fff', 
+                  boxShadow: 'inset 0 0 0 1px #dde6ff',
+                  fontFamily: 'Tahoma, Arial, sans-serif'
+                }}>
+                  {/* Imagen del producto */}
+                  <div style={{ 
+                    height: 140, 
+                    background: '#f4f4f4', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    borderBottom: '1px solid #ccd6ff',
+                    position: 'relative'
+                  }}>
+                    {p.image ? (
+                      <img 
+                        alt={p.name} 
+                        src={p.image} 
+                        style={{ 
+                          maxWidth: '100%', 
+                          maxHeight: '100%'
+                        }} 
+                      />
+                    ) : (
+                      <div style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        color: '#888',
+                        fontSize: '12px'
+                      }}>
+                        <span style={{ fontSize: '24px', marginBottom: '4px' }}>🖼️</span>
+                        <span>Sin imagen</span>
+                      </div>
+                    )}
+                    {/* Badge de categoría estilo Windows XP */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '4px',
+                      right: '4px',
+                      background: '#316ac5',
+                      color: 'white',
+                      padding: '2px 6px',
+                      fontSize: '9px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      border: '1px solid #1e4a8c',
+                      boxShadow: 'inset 0 1px 0 #5a8ddb'
+                    }}>
+                      {p.category || 'General'}
+                    </div>
                   </div>
-                  <div style={{ padding: 8 }}>
-                    <div style={{ fontWeight: 'bold', textAlign: 'center' }}>{p.name}</div>
-                    <div style={{ fontSize: 12, color: '#333', marginTop: 4 }}>Categoría: {p.category || '—'}</div>
-                    <div style={{ fontSize: 12, color: '#333' }}>Marca: {(function(){ const fb=state.brands.find(b=>b.id===p.brandId); return (fb && fb.name) || '—'; })()}</div>
-                    <div style={{ color: '#008000', fontWeight: 'bold', marginTop: 4 }}>${p.price}</div>
-                    <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                      <button style={btn()} onClick={() => loadProduct(p.id)}>✎ Editar</button>
-                      <button style={btn()} onClick={() => deleteProduct(p.id)}>🗑 Eliminar</button>
+                  
+                  {/* Contenido de la tarjeta */}
+                  <div style={{ padding: '8px' }}>
+                    {/* Nombre del producto */}
+                    <div style={{ 
+                      fontWeight: 'bold', 
+                      textAlign: 'center',
+                      fontSize: '13px',
+                      color: '#000',
+                      marginBottom: '6px'
+                    }}>
+                      {p.name}
+                    </div>
+                    
+                    {/* Información del producto */}
+                    <div style={{ marginBottom: '8px' }}>
+                      <div style={{ 
+                        fontSize: 11, 
+                        color: '#333', 
+                        marginBottom: '2px',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}>
+                        <span style={{ marginRight: '4px', fontSize: '10px' }}>🏷️</span>
+                        <span>{(function(){ const fb=state.brands.find(b=>b.id===p.brandId); return (fb && fb.name) || 'Sin marca'; })()}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Precio */}
+                    <div style={{ 
+                      color: '#008000', 
+                      fontWeight: 'bold', 
+                      marginBottom: '8px',
+                      textAlign: 'center',
+                      fontSize: '14px'
+                    }}>
+                      ${p.price}
+                    </div>
+                    
+                    {/* Botones de acción estilo Windows XP */}
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button 
+                        onClick={() => loadProduct(p.id)}
+                        style={{
+                          flex: 1,
+                          padding: '4px 8px',
+                          background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
+                          border: '1px solid #999',
+                          borderRadius: '3px',
+                          color: '#000',
+                          fontSize: '11px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          fontFamily: 'Tahoma, Arial, sans-serif',
+                          boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                        }}
+                        onMouseDown={(e) => {
+                          e.target.style.background = 'linear-gradient(to bottom, #d0d0d0 0%, #f0f0f0 100%)';
+                          e.target.style.boxShadow = 'inset 0 1px 0 #999, 0 1px 0 #fff';
+                        }}
+                        onMouseUp={(e) => {
+                          e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                          e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                          e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                        }}
+                      >
+                        <span style={{ fontSize: '10px' }}>✏️</span>
+                        Editar
+                      </button>
+                      <button 
+                        onClick={() => deleteProduct(p.id)}
+                        style={{
+                          flex: 1,
+                          padding: '4px 8px',
+                          background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
+                          border: '1px solid #999',
+                          borderRadius: '3px',
+                          color: '#000',
+                          fontSize: '11px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          fontFamily: 'Tahoma, Arial, sans-serif',
+                          boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                        }}
+                        onMouseDown={(e) => {
+                          e.target.style.background = 'linear-gradient(to bottom, #d0d0d0 0%, #f0f0f0 100%)';
+                          e.target.style.boxShadow = 'inset 0 1px 0 #999, 0 1px 0 #fff';
+                        }}
+                        onMouseUp={(e) => {
+                          e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                          e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                          e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                        }}
+                      >
+                        <span style={{ fontSize: '10px' }}>🗑️</span>
+                        Eliminar
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -270,48 +757,339 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
             </div>
             </div>
           </div>
+          {(pId || showNewProductForm) && (
           <div style={{ overflow: 'auto' }}>
-            <div style={groupHeader()}>{pId ? 'Editar' : 'Nuevo'} producto</div>
+              <div style={groupHeader()}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '14px' }}>📝</span>
+                  {pId ? 'Editar producto' : 'Nuevo producto'}
+                </span>
+              </div>
             <div style={groupBody()}>
-            <Field label="Nombre"><input value={pName} onChange={e => setPName(e.target.value)} /></Field>
-            <Field label="Descripción"><textarea value={pDesc} onChange={e => setPDesc(e.target.value)} /></Field>
+                {/* Sección de información básica */}
+                <div style={{ 
+                  background: '#f0f0f0',
+                  border: '1px solid #999',
+                  padding: '8px',
+                  marginBottom: '8px',
+                  boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                }}>
+                  <div style={{ 
+                    fontSize: '11px', 
+                    fontWeight: 'bold', 
+                    color: '#000', 
+                    marginBottom: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <span>ℹ️</span>
+                    Información básica
+                  </div>
+                  <Field label="Nombre del producto">
+                    <input 
+                      value={pName} 
+                      onChange={e => setPName(e.target.value)}
+                      placeholder="Ingrese el nombre del producto..."
+                      style={{
+                        width: '100%',
+                        padding: '4px 6px',
+                        border: '1px solid #999',
+                        fontSize: '11px',
+                        background: '#fff',
+                        fontFamily: 'Tahoma, Arial, sans-serif',
+                        boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                      }}
+                    />
+                  </Field>
+                  <Field label="Descripción">
+                    <textarea 
+                      value={pDesc} 
+                      onChange={e => setPDesc(e.target.value)}
+                      placeholder="Descripción del producto..."
+                      rows="3"
+                      style={{
+                        width: '100%',
+                        padding: '4px 6px',
+                        border: '1px solid #999',
+                        fontSize: '11px',
+                        background: '#fff',
+                        fontFamily: 'Tahoma, Arial, sans-serif',
+                        resize: 'vertical',
+                        boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                      }}
+                    />
+                  </Field>
+                </div>
+
+                {/* Sección de categorización */}
+                <div style={{ 
+                  background: '#f0f0f0',
+                  border: '1px solid #999',
+                  padding: '8px',
+                  marginBottom: '8px',
+                  boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                }}>
+                  <div style={{ 
+                    fontSize: '11px', 
+                    fontWeight: 'bold', 
+                    color: '#000', 
+                    marginBottom: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <span>🏷️</span>
+                    Categorización
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <Field label="Categoría">
-              <select value={pCategory} onChange={e => setPCategory(e.target.value)}>
+                      <select 
+                        value={pCategory} 
+                        onChange={e => setPCategory(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '4px 6px',
+                          border: '1px solid #999',
+                          fontSize: '11px',
+                          background: '#fff',
+                          fontFamily: 'Tahoma, Arial, sans-serif',
+                          cursor: 'pointer',
+                          boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                        }}
+                      >
                 <option value="general">General</option>
                 <option value="otros">Otros</option>
               </select>
             </Field>
             <Field label="Marca">
-              <select value={pBrandId} onChange={e => setPBrandId(e.target.value)}>
-                <option value="">Seleccione</option>
+                      <select 
+                        value={pBrandId} 
+                        onChange={e => setPBrandId(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '4px 6px',
+                          border: '1px solid #999',
+                          fontSize: '11px',
+                          background: '#fff',
+                          fontFamily: 'Tahoma, Arial, sans-serif',
+                          cursor: 'pointer',
+                          boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                        }}
+                      >
+                        <option value="">Seleccione una marca</option>
                 {state.brands.map(b => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Precio"><input type="number" min="0" value={pPrice} onChange={e => setPPrice(e.target.value)} /></Field>
-            <Field label="Imagen URL"><input value={pImage} onChange={e => { setPImage(e.target.value); setPPreview(e.target.value); }} /></Field>
+                  </div>
+                </div>
+
+                {/* Sección de precio */}
+                <div style={{ 
+                  background: '#f0f0f0',
+                  border: '1px solid #999',
+                  padding: '8px',
+                  marginBottom: '8px',
+                  boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                }}>
+                  <div style={{ 
+                    fontSize: '11px', 
+                    fontWeight: 'bold', 
+                    color: '#000', 
+                    marginBottom: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <span>💰</span>
+                    Precio
+                  </div>
+                  <Field label="Precio ($)">
+                    <input 
+                      type="number" 
+                      min="0" 
+                      step="0.01"
+                      value={pPrice} 
+                      onChange={e => setPPrice(e.target.value)}
+                      placeholder="0.00"
+                      style={{
+                        width: '100%',
+                        padding: '4px 6px',
+                        border: '1px solid #999',
+                        fontSize: '11px',
+                        background: '#fff',
+                        fontFamily: 'Tahoma, Arial, sans-serif',
+                        boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                      }}
+                    />
+                  </Field>
+                </div>
+
+                {/* Sección de imagen */}
+                <div style={{ 
+                  background: '#f0f0f0',
+                  border: '1px solid #999',
+                  padding: '8px',
+                  marginBottom: '8px',
+                  boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                }}>
+                  <div style={{ 
+                    fontSize: '11px', 
+                    fontWeight: 'bold', 
+                    color: '#000', 
+                    marginBottom: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <span>🖼️</span>
+                    Imagen del producto
+                  </div>
+                  <Field label="URL de la imagen">
+                    <input 
+                      value={pImage} 
+                      onChange={e => { setPImage(e.target.value); setPPreview(e.target.value); }}
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                      style={{
+                        width: '100%',
+                        padding: '4px 6px',
+                        border: '1px solid #999',
+                        fontSize: '11px',
+                        background: '#fff',
+                        fontFamily: 'Tahoma, Arial, sans-serif',
+                        boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                      }}
+                    />
+                  </Field>
             {pPreview && (
-              <div style={{ marginBottom: 8 }}>
-                <img alt="preview" src={pPreview} style={{ maxWidth: 200, height: 'auto' }} />
+                    <div style={{ 
+                      marginTop: '6px',
+                      textAlign: 'center',
+                      background: '#fff',
+                      border: '1px solid #999',
+                      padding: '6px',
+                      boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                    }}>
+                      <div style={{ fontSize: '10px', color: '#666', marginBottom: '4px' }}>Vista previa:</div>
+                      <img 
+                        alt="Vista previa" 
+                        src={pPreview} 
+                        style={{ 
+                          maxWidth: '100%', 
+                          maxHeight: '120px'
+                        }} 
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'block';
+                        }}
+                      />
+                      <div style={{ 
+                        display: 'none', 
+                        color: '#999', 
+                        fontSize: '11px',
+                        padding: '16px'
+                      }}>
+                        No se pudo cargar la imagen
+                      </div>
               </div>
             )}
-            <div>
-              <button style={btn()} disabled={!canSaveProduct} onClick={saveProduct}>{pId ? 'Guardar cambios' : 'Crear producto'}</button>{' '}
-              <button style={btn()} onClick={clearProductForm}>Limpiar</button>
+                </div>
+
+                {/* Botones de acción */}
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '6px',
+                  justifyContent: 'center',
+                  marginTop: '12px'
+                }}>
+                  <button 
+                    style={{
+                      padding: '6px 12px',
+                      background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
+                      border: '1px solid #999',
+                      color: '#000',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      cursor: canSaveProduct ? 'pointer' : 'not-allowed',
+                      opacity: canSaveProduct ? 1 : 0.6,
+                      fontFamily: 'Tahoma, Arial, sans-serif',
+                      boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    disabled={!canSaveProduct} 
+                    onClick={saveProduct}
+                    onMouseDown={(e) => {
+                      if (canSaveProduct) {
+                        e.target.style.background = 'linear-gradient(to bottom, #d0d0d0 0%, #f0f0f0 100%)';
+                        e.target.style.boxShadow = 'inset 0 1px 0 #999, 0 1px 0 #fff';
+                      }
+                    }}
+                    onMouseUp={(e) => {
+                      if (canSaveProduct) {
+                        e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                        e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (canSaveProduct) {
+                        e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                        e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                      }
+                    }}
+                  >
+                    <span>💾</span>
+                    {pId ? 'Guardar cambios' : 'Crear producto'}
+                  </button>
+                  <button 
+                    style={{
+                      padding: '6px 12px',
+                      background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
+                      border: '1px solid #999',
+                      color: '#000',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      fontFamily: 'Tahoma, Arial, sans-serif',
+                      boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    onClick={clearProductForm}
+                    onMouseDown={(e) => {
+                      e.target.style.background = 'linear-gradient(to bottom, #d0d0d0 0%, #f0f0f0 100%)';
+                      e.target.style.boxShadow = 'inset 0 1px 0 #999, 0 1px 0 #fff';
+                    }}
+                    onMouseUp={(e) => {
+                      e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                      e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                      e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                    }}
+                  >
+                    <span>🗑️</span>
+                    Limpiar
+                  </button>
             </div>
             </div>
           </div>
+          )}
         </div>
       )}
 
       {tab === 'brands' && (
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, flex: 1 }}>
           <div style={{ overflow: 'auto' }}>
-            <div style={groupHeader()}>Catálogo de Marcas</div>
+            <div style={groupHeader()}>Marcas</div>
             <div style={groupBody()}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
-              {state.brands.map(b => (
+              {filteredBrands.map(b => (
                 <div key={b.id} style={{ border: '1px solid #b0c4ff', background: '#fff', boxShadow: 'inset 0 0 0 1px #dde6ff' }}>
                   <div style={{ height: 100, background: '#f4f4f4', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #ccd6ff' }}>
                     {b.logo ? <img alt={b.name} src={b.logo} style={{ maxWidth: '100%', maxHeight: '100%' }} /> : <span style={{ color: '#888' }}>Sin logo</span>}
@@ -411,6 +1189,7 @@ const Div = styled.div`
   .com__function_bar__button { display:flex; align-items:center; height:100%; border: 1px solid rgba(0,0,0,0); border-radius:3px; }
   .com__function_bar__button:hover { border:1px solid rgba(0,0,0,0.1); box-shadow: inset 0 -1px 1px rgba(0,0,0,0.1); }
   .com__function_bar__button:hover:active { border:1px solid rgb(185,185,185); background:#dedede; box-shadow: inset 0 -1px 1px rgba(255,255,255,0.7); color: rgba(255,255,255,0.7); }
+  .com__function_bar__button--active { border:1px solid rgb(185,185,185); background:#dedede; box-shadow: inset 0 -1px 1px rgba(255,255,255,0.7); color: rgba(0,0,0,0.7); }
   .com__function_bar__icon--normalize { height:22px; width:22px; margin: 0 4px 0 1px; }
   .com__function_bar__text { margin-right: 4px; }
   .com__function_bar__icon { height:30px; width:30px; }

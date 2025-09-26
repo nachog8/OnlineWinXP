@@ -29,18 +29,36 @@ function Icons({
       .map(icon => icon.id);
     setSelectedIcons(selectedIds);
   }, [iconsRect, setSelectedIcons, selecting, mouse.docX, mouse.docY]);
+  // Dividir los iconos en dos columnas: 5 en la primera, 3 en la segunda
+  const firstColumnIcons = icons.slice(0, 5);
+  const secondColumnIcons = icons.slice(5, 8);
+
   return (
     <IconsContainer>
-      {icons.map(icon => (
-        <StyledIcon
-          key={icon.id}
-          {...icon}
-          displayFocus={displayFocus}
-          onMouseDown={onMouseDown}
-          onDoubleClick={onDoubleClick}
-          measure={measure}
-        />
-      ))}
+      <ColumnContainer>
+        {firstColumnIcons.map(icon => (
+          <StyledIcon
+            key={icon.id}
+            {...icon}
+            displayFocus={displayFocus}
+            onMouseDown={onMouseDown}
+            onDoubleClick={onDoubleClick}
+            measure={measure}
+          />
+        ))}
+      </ColumnContainer>
+      <ColumnContainer style={{ marginLeft: '30px' }}>
+        {secondColumnIcons.map(icon => (
+          <StyledIcon
+            key={icon.id}
+            {...icon}
+            displayFocus={displayFocus}
+            onMouseDown={onMouseDown}
+            onDoubleClick={onDoubleClick}
+            measure={measure}
+          />
+        ))}
+      </ColumnContainer>
     </IconsContainer>
   );
 }
@@ -91,6 +109,12 @@ const IconsContainer = styled.div`
   position: absolute;
   margin-top: 40px;
   margin-left: 40px;
+  display: flex;
+`;
+
+const ColumnContainer = styled.div`
+  display: flex;
+  flex-direction: column;
 `;
 
 const StyledIcon = styled(Icon)`
@@ -141,3 +165,7 @@ const StyledIcon = styled(Icon)`
 `;
 
 export default Icons;
+
+
+
+
