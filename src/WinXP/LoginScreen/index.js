@@ -42,14 +42,26 @@ function LoginModal({ onClose }) {
     if (error) return setMessage(error.message);
     dispatch({ type: ACTIONS.SET_SESSION, payload: { session: data.session, user: data.user } });
   }
+  async function onLoginWithGoogle() {
+    try {
+      setMessage('');
+      const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+      if (error) setMessage(error.message);
+    } catch (e) { setMessage('No se pudo iniciar con Google'); }
+  }
+  function onKeyDown(e) {
+    if (e.key === 'Enter') {
+      if (mode === 'login') onLogin(); else onRegister();
+    }
+  }
 
   return (
     <div
       style={{
-        width: 460,
-        background: '#ece9d8',
+        width: 520,
+        background: 'linear-gradient(180deg,#f5f3e6,#ece9d8)',
         border: '2px solid #003399',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.35), 0 0 0 2px #7ba7ff inset',
+        boxShadow: '0 10px 28px rgba(0,0,0,0.45), 0 0 0 2px #7ba7ff inset',
         position: 'relative',
         borderRadius: 4,
       }}
@@ -67,74 +79,52 @@ function LoginModal({ onClose }) {
           borderTopRightRadius: 2,
         }}
       >
-        <span>Iniciar sesión en Windows XP</span>
+        <span>{mode === 'login' ? 'Iniciar sesión en Windows XP' : 'Registrarse en Windows XP'}</span>
         <button onClick={onClose} style={{ background: 'transparent', color: '#fff', border: 0, fontSize: 16, cursor: 'pointer' }}>✕</button>
       </div>
-      <div style={{ padding: 14 }}>
-        <div style={{ marginBottom: 10 }}>
-          <button
-            onClick={() => setMode('login')}
-            style={{
-              background: mode === 'login' ? 'linear-gradient(#e6f0ff,#cfe0ff)' : 'linear-gradient(#fff,#eee)',
-              border: '1px solid #7aa2e8',
-              padding: '6px 10px',
-              marginRight: 6,
-              cursor: 'pointer',
-            }}
-          >
-            Iniciar sesión
-          </button>
-          <button
-            onClick={() => setMode('register')}
-            style={{
-              background: mode === 'register' ? 'linear-gradient(#e6f0ff,#cfe0ff)' : 'linear-gradient(#fff,#eee)',
-              border: '1px solid #7aa2e8',
-              padding: '6px 10px',
-              cursor: 'pointer',
-            }}
-          >
-            Registrarse
-          </button>
+      <div style={{ padding: 0 }} onKeyDown={onKeyDown}>
+        {/* Banner interno XP */}
+        <div style={{
+          height: 72,
+          background: mode === 'login' ? 'linear-gradient(180deg,#3b70c9 0%, #2d5fb5 50%, #2453a6 100%)' : 'linear-gradient(180deg,#2f9c5a 0%, #28864e 60%, #207443 100%)',
+          color: '#fff',
+          padding: '10px 14px',
+          boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.3)'
+        }}>
+          <div style={{ fontSize: 20, fontWeight: 'bold' }}>Microsoft Windows <span style={{ color: '#ff7a00' }}>XP</span></div>
+          <div style={{ opacity: 0.9, marginTop: 4, fontSize: 12 }}>{mode === 'login' ? 'Professional' : 'Create Account'}</div>
         </div>
-        {mode === 'login' && (
-          <div>
-            <Field label="Email" type="email" value={email} onChange={setEmail} />
+
+        {/* Panel beige con campos */}
+        <div style={{ background: '#ece9d8', padding: 16 }}>
+          <div style={{ maxWidth: 420, margin: '0 auto' }}>
+            <Field label="Usuario" type="email" value={email} onChange={setEmail} />
             <Field label="Contraseña" type="password" value={password} onChange={setPassword} />
-            <div>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
               <button
                 onClick={onLogin}
                 style={{
                   background: 'linear-gradient(#e6f0ff,#cfe0ff)',
                   border: '1px solid #7aa2e8',
                   padding: '6px 12px',
-                  cursor: 'pointer',
+                  cursor: 'pointer'
                 }}
-              >
-                Entrar
-              </button>
-            </div>
-          </div>
-        )}
-        {mode === 'register' && (
-          <div>
-            <Field label="Email" type="email" value={email} onChange={setEmail} />
-            <Field label="Contraseña" type="password" value={password} onChange={setPassword} />
-            <div>
+              >Acceder</button>
               <button
-                onClick={onRegister}
-                style={{
-                  background: 'linear-gradient(#e6f0ff,#cfe0ff)',
-                  border: '1px solid #7aa2e8',
-                  padding: '6px 12px',
-                  cursor: 'pointer',
-                }}
-              >
-                Crear cuenta
+                onClick={onLoginWithGoogle}
+                style={{ background: 'linear-gradient(#fff,#eee)', border: '1px solid #7aa2e8', padding: '6px 12px', cursor: 'pointer' }}
+              >Iniciar con Google</button>
+            </div>
+
+            <div style={{ marginTop: 10, fontSize: 12 }}>
+              <button onClick={() => setMode(mode === 'login' ? 'register' : 'login')} style={{ background: 'transparent', border: 0, color: '#003399', cursor: 'pointer' }}>
+                {mode === 'login' ? 'Crear nueva cuenta...' : 'Ya tengo cuenta. Iniciar sesión'}
               </button>
             </div>
+            {message && <div style={{ color: '#c00', marginTop: 8 }}>{message}</div>}
           </div>
-        )}
-        {message && <div style={{ color: '#c00', marginTop: 8 }}>{message}</div>}
+        </div>
       </div>
     </div>
   );
