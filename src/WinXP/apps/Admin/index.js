@@ -38,6 +38,118 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
   const isAdmin = !!emailStr && !isEmployee;
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [sales, setSales] = useState([]);
+  const [salesRefreshToken, setSalesRefreshToken] = useState(0);
+  const [editingSale, setEditingSale] = useState(null);
+  const [editPaymentMethod, setEditPaymentMethod] = useState('');
+  const [editCustomerName, setEditCustomerName] = useState('');
+  const [editCustomerEmail, setEditCustomerEmail] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editTotal, setEditTotal] = useState('');
+
+  // Modal de confirmación estilo Windows XP
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: 'C:\\', message: '', onConfirm: null });
+  function openConfirm(message, onConfirm, title = 'C:\\') {
+    setConfirmDialog({ open: true, title, message, onConfirm });
+  }
+  function closeConfirm() {
+    setConfirmDialog({ open: false, title: 'C\\', message: '', onConfirm: null });
+  }
+  // Escuchar eventos globales para refrescar ventas
+  React.useEffect(() => {
+    function onRefresh() { setSalesRefreshToken(x => x + 1); }
+    window.addEventListener('sales:refresh', onRefresh);
+    return () => window.removeEventListener('sales:refresh', onRefresh);
+  }, []);
+
+  // Cargar ventas reales desde Supabase
+  const loadSalesFromSupabase = React.useCallback(async () => {
+    try {
+      if (!supabase || !supabase.from || !state.user || !state.user.id) return;
+      const { data, error } = await supabase
+        .from('sales')
+        .select('id, employee_id, total_amount, sale_date, notes')
+        .eq('employee_id', state.user.id)
+        .order('sale_date', { ascending: false })
+        .limit(200);
+      if (error) { console.error('❌ Error al cargar ventas:', error); return; }
+      const mapped = (data || []).map(row => {
+        let paymentMethod = '';
+        let customerName = '';
+        let customerEmail = '';
+        try {
+          const n = row.notes && typeof row.notes === 'string' ? JSON.parse(row.notes) : row.notes;
+          if (n) {
+            paymentMethod = n.paymentMethod || '';
+            if (n.customerData) {
+              customerName = n.customerData.name || '';
+              customerEmail = n.customerData.email || '';
+            }
+          }
+        } catch (_e) {}
+        return {
+          id: row.id,
+          customerName,
+          customerEmail,
+          total: Number(row.total_amount || 0),
+          paymentMethod,
+          date: row.sale_date ? new Date(row.sale_date) : new Date(),
+          seller: state.user && state.user.email ? state.user.email : ''
+        };
+      });
+      setSales(mapped);
+    } catch (e) {
+      console.error('❌ Error inesperado cargando ventas:', e);
+    }
+  }, [supabase, state.user]);
+
+  // Recargar cuando se abre la pestaña Ventas o cuando haya refresh
+  React.useEffect(() => {
+    if (tab === 'sales') loadSalesFromSupabase();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, salesRefreshToken]);
+
+  async function onDeleteSale(id) {
+    // eslint-disable-next-line no-alert
+    if (!window.confirm('¿Eliminar esta venta? Esta acción no se puede deshacer.')) return;
+    try {
+      if (supabase && supabase.from) {
+        await supabase.from('sale_items').delete().eq('sale_id', id); // por si no hay ON DELETE CASCADE
+        await supabase.from('sales').delete().eq('id', id);
+      }
+      setEditingSale(null);
+      setSalesRefreshToken(x => x + 1);
+    } catch (e) {
+      console.error('❌ Error eliminando venta:', e);
+    }
+  }
+
+  function startEditSale(sale) {
+    setEditingSale(sale);
+    setEditPaymentMethod(sale.paymentMethod || '');
+    setEditCustomerName(sale.customerName || '');
+    setEditCustomerEmail(sale.customerEmail || '');
+    setEditDate(sale.date ? new Date(sale.date).toISOString().slice(0,16) : '');
+    setEditTotal(String(sale.total || 0));
+  }
+
+  async function saveEditSale() {
+    if (!editingSale) return;
+    try {
+      const newNotes = { paymentMethod: editPaymentMethod, customerData: { name: editCustomerName, email: editCustomerEmail } };
+      const payload = {
+        total_amount: Number(editTotal || 0),
+        sale_date: editDate ? new Date(editDate).toISOString() : new Date().toISOString(),
+        notes: JSON.stringify(newNotes)
+      };
+      if (supabase && supabase.from) {
+        await supabase.from('sales').update(payload).eq('id', editingSale.id);
+      }
+      setEditingSale(null);
+      setSalesRefreshToken(x => x + 1);
+    } catch (e) {
+      console.error('❌ Error actualizando venta:', e);
+    }
+  }
 
   // Responsive: detectar ventana angosta para apilar columnas
   const [isNarrow, setIsNarrow] = useState(false);
@@ -72,19 +184,46 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
   const [pBrandId, setPBrandId] = useState('');
   const [pPrice, setPPrice] = useState('0');
   const [pImage, setPImage] = useState('');
+  const [pStock, setPStock] = useState('0');
+  const [pMinStock, setPMinStock] = useState('0');
   const [pPreview, setPPreview] = useState('');
+  const [pOriginal, setPOriginal] = useState(null);
+
+  // Calcular automáticamente el stock mínimo como 30% del stock
+  React.useEffect(() => {
+    const s = Number(pStock || 0);
+    const autoMin = Math.floor(s * 0.3);
+    setPMinStock(String(autoMin));
+  }, [pStock]);
 
   // Marcas
   const [bId, setBId] = useState('');
   const [bName, setBName] = useState('');
   const [bDesc, setBDesc] = useState('');
   const [bLogo, setBLogo] = useState('');
+  const [bOriginal, setBOriginal] = useState(null);
 
   const canSaveProduct = useMemo(() => {
     const price = Number(pPrice);
     if (!pName || !pBrandId || Number.isNaN(price) || price < 0) return false;
     return true;
   }, [pName, pBrandId, pPrice]);
+
+  const isProductDirty = useMemo(() => {
+    if (!pOriginal && !pId) return !!(pName || pDesc || pImage || Number(pPrice) > 0 || (pBrandId && pBrandId !== ''));
+    if (!pOriginal) return true;
+    return (
+      pName !== pOriginal.name ||
+      pDesc !== pOriginal.description ||
+      pCategory !== pOriginal.category ||
+      pBrandId !== pOriginal.brandId ||
+      Number(pPrice) !== Number(pOriginal.price) ||
+      pImage !== pOriginal.image ||
+      Number(pStock) !== Number(pOriginal.stock)
+    );
+  }, [pOriginal, pId, pName, pDesc, pCategory, pBrandId, pPrice, pImage, pStock]);
+
+  const canSubmitProduct = canSaveProduct && isProductDirty;
 
   // Filtros para productos
   const filteredProducts = useMemo(() => {
@@ -133,6 +272,7 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
   function clearProductForm() {
     setPId(''); setPName(''); setPDesc(''); setPCategory('general'); setPBrandId(''); setPPrice('0'); setPImage(''); setPPreview('');
     setShowNewProductForm(false);
+    setPOriginal(null);
   }
   
   function showNewProduct() {
@@ -148,6 +288,7 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
   function clearBrandForm() {
     setBId(''); setBName(''); setBDesc(''); setBLogo('');
     setShowNewBrandForm(false);
+    setBOriginal(null);
   }
 
   function clearFilters() {
@@ -172,12 +313,24 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
     setPBrandId(p.brandId || '');
     setPPrice(String(p.price || 0));
     setPImage(p.image || '');
+    // valores opcionales si los tienes en memoria
+    setPStock(String(p.stock_quantity || 0));
+    setPMinStock(String(p.min_stock || 0));
     setPPreview(p.image || '');
     setShowNewProductForm(false);
+    setPOriginal({
+      name: p.name || '',
+      description: p.description || '',
+      category: p.category || 'general',
+      brandId: p.brandId || '',
+      price: Number(p.price || 0),
+      image: p.image || '',
+      stock: Number(p.stock_quantity || 0)
+    });
   }
   async function saveProduct() {
     if (!canSaveProduct) return;
-    const payload = { id: pId || undefined, name: pName, description: pDesc, category: pCategory, brand_id: pBrandId, price: Number(pPrice), image: pImage };
+    const payload = { id: pId || undefined, name: pName, description: pDesc, category: pCategory, brand_id: pBrandId, price: Number(pPrice), image: pImage, stock_quantity: Number(pStock || 0), min_stock: Math.floor(Number(pStock || 0) * 0.3) };
     try {
       if (supabase && supabase.from) {
         const table = supabase.from('products');
@@ -188,20 +341,16 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
         }
       }
     } catch (_e) {}
-    dispatch({ type: ACTIONS.UPSERT_PRODUCT, payload: { id: payload.id, name: pName, description: pDesc, category: pCategory, brandId: pBrandId, price: Number(pPrice), image: pImage } });
+    dispatch({ type: ACTIONS.UPSERT_PRODUCT, payload: { id: payload.id, name: pName, description: pDesc, category: pCategory, brandId: pBrandId, price: Number(pPrice), image: pImage, stock_quantity: Number(pStock || 0), min_stock: Math.floor(Number(pStock || 0) * 0.3) } });
     clearProductForm();
     setShowNewProductForm(false);
     setLastUpdate(new Date());
   }
   async function deleteProduct(id) {
-    // confirmación
-    // eslint-disable-next-line no-alert
-    if (window.confirm('¿Eliminar producto?')) {
-      try {
-        if (supabase && supabase.from) await supabase.from('products').delete().eq('id', id);
-      } catch (_e) {}
+    openConfirm('¿Eliminar producto?', async () => {
+      try { if (supabase && supabase.from) await supabase.from('products').delete().eq('id', id); } catch (_e) {}
       dispatch({ type: ACTIONS.DELETE_PRODUCT, payload: id }); setLastUpdate(new Date());
-    }
+    });
   }
 
   function loadBrand(id) {
@@ -211,6 +360,7 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
     setBName(b.name || '');
     setBDesc(b.description || '');
     setBLogo(b.logo || '');
+    setBOriginal({ name: b.name || '', description: b.description || '', logo: b.logo || '' });
   }
   async function saveBrand() {
     if (!bName) return;
@@ -229,16 +379,19 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
     clearBrandForm();
     setLastUpdate(new Date());
   }
+
+  const isBrandDirty = useMemo(() => {
+    if (!bId) return !!(bName || bDesc || bLogo);
+    if (!bOriginal) return true;
+    return bName !== bOriginal.name || bDesc !== bOriginal.description || bLogo !== bOriginal.logo;
+  }, [bId, bOriginal, bName, bDesc, bLogo]);
   async function deleteBrand(id) {
     const hasProducts = state.products.some(p => p.brandId === id);
     if (hasProducts) return; // impedimos eliminación si hay productos asociados
-    // eslint-disable-next-line no-alert
-    if (window.confirm('¿Eliminar marca?')) {
-      try {
-        if (supabase && supabase.from) await supabase.from('brands').delete().eq('id', id);
-      } catch (_e) {}
+    openConfirm('¿Eliminar marca?', async () => {
+      try { if (supabase && supabase.from) await supabase.from('brands').delete().eq('id', id); } catch (_e) {}
       dispatch({ type: ACTIONS.DELETE_BRAND, payload: id }); setLastUpdate(new Date());
-    }
+    });
   }
 
   if (!state.user) {
@@ -330,6 +483,29 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                     </button>
                   </div>
                 )}
+
+    {/* Confirm dialog estilo Windows XP */}
+    {confirmDialog.open && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }}>
+        <div style={{ width: 380, background: '#f0f0f0', border: '2px outset #f0f0f0', boxShadow: '2px 2px 6px rgba(0,0,0,0.35)' }}>
+          <div style={{ background: 'linear-gradient(to bottom, #316ac5 0%, #1e4a8c 100%)', color: '#fff', padding: '6px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1e4a8c' }}>
+            <span style={{ fontWeight: 'bold', fontSize: 12 }}>{confirmDialog.title}</span>
+            <button onClick={closeConfirm} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 14, cursor: 'pointer' }}>✕</button>
+          </div>
+          <div style={{ padding: 14, background: '#fff', border: '1px inset #f0f0f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ fontSize: 28, color: '#cc0000' }}>❌</div>
+              <div style={{ fontSize: 12, color: '#000' }}>{confirmDialog.message}</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 14 }}>
+              <button onClick={async () => { try { if (typeof confirmDialog.onConfirm === 'function') await confirmDialog.onConfirm(); } finally { closeConfirm(); } }}
+                style={{ padding: '6px 16px', background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)', border: '1px outset #f0f0f0', fontWeight: 'bold', cursor: 'pointer' }}>Aceptar</button>
+              <button onClick={closeConfirm} style={{ padding: '6px 16px', background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)', border: '1px outset #f0f0f0', fontWeight: 'bold', cursor: 'pointer' }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
                 {tab === 'brands' && (
                   <div className="com__content__left__card__row">
                     <button style={btn()} onClick={showNewBrandForm ? clearBrandForm : showNewBrand}>
@@ -670,6 +846,22 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                     }}>
                       {p.category === 'general' ? 'ELECTRÓNICOS' : (p.category || 'GENERAL').toUpperCase()}
                     </div>
+                    {typeof p.stock_quantity === 'number' && typeof p.min_stock === 'number' && p.stock_quantity <= p.min_stock && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '4px',
+                        right: '4px',
+                        background: '#ff9800',
+                        color: '#000',
+                        padding: '2px 6px',
+                        fontSize: '9px',
+                        fontWeight: 'bold',
+                        border: '1px solid #e07b00',
+                        boxShadow: 'inset 0 1px 0 #ffd08a'
+                      }}>
+                        Bajo stock
+                      </div>
+                    )}
                   </div>
                   
                   {/* Contenido de la tarjeta */}
@@ -703,6 +895,11 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                         }}>🏷️</span>
                         <span style={{ fontWeight: '500' }}>{(function(){ const fb=state.brands.find(b=>b.id===p.brandId); return (fb && fb.name) || 'Sin marca'; })()}</span>
                       </div>
+                      {(typeof p.stock_quantity === 'number') && (
+                        <div style={{ fontSize: 10, color: '#666', textAlign: 'center' }}>
+                          Disponible: {p.stock_quantity}{typeof p.min_stock === 'number' ? ` (mínimo ${p.min_stock})` : ''}
+                        </div>
+                      )}
                     </div>
                     
                     {/* Precio */}
@@ -800,7 +997,13 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
           {(pId || showNewProductForm) && (
           <div style={{ overflow: 'auto' }}>
               <div style={groupHeader()}>
-                  {pId ? 'Editar producto' : 'Nuevo producto'}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{pId ? 'Editar producto' : 'Nuevo producto'}</span>
+                  <button 
+                    onClick={() => { setPId(''); setShowNewProductForm(false); }}
+                    style={{ padding: '4px 8px', background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)', border: '1px solid #999', fontSize: 11, cursor: 'pointer' }}
+                  >Ocultar</button>
+                </div>
               </div>
             <div style={{ ...groupBody(), maxWidth: isNarrow ? '100%' : 'unset' }}>
                 {/* Sección de información básica */}
@@ -954,6 +1157,29 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                       onBlur={(e) => e.target.style.border = '1px solid #999'}
                     />
                   </Field>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8, marginTop: 8 }}>
+                    <Field label="Stock">
+                      <input 
+                        type="number" 
+                        min="0" 
+                        step="1"
+                        value={pStock} 
+                        onChange={e => setPStock(e.target.value)}
+                        placeholder="0"
+                        style={{
+                          width: '100%',
+                          padding: '4px 6px',
+                          border: '1px solid #999',
+                          fontSize: '11px',
+                          background: '#fff',
+                          fontFamily: 'Tahoma, Arial, sans-serif',
+                          boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                        }}
+                        onFocus={(e) => e.target.style.border = '1px solid #4a90e2'}
+                        onBlur={(e) => e.target.style.border = '1px solid #999'}
+                      />
+                    </Field>
+                  </div>
                 </div>
 
                 {/* Sección de imagen */}
@@ -1024,45 +1250,47 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
 
                 {/* Botones de acción */}
                 <div style={{ 
-                  display: 'flex', 
-                  gap: '6px',
+                  display: 'grid',
+                  gridTemplateColumns: isNarrow ? '1fr' : 'repeat(2, minmax(140px,1fr))',
+                  gap: '8px',
                   justifyContent: 'center',
+                  justifyItems: 'center',
                   marginTop: '12px'
                 }}>
                   <button 
                     style={{
                       padding: '6px 12px',
-                      background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
-                      border: '1px solid #999',
-                      color: '#000',
+                      background: canSubmitProduct ? 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)' : 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
+                      border: canSubmitProduct ? '1px solid #2e7d32' : '1px solid #999',
+                      color: canSubmitProduct ? '#fff' : '#000',
                       fontSize: '11px',
                       fontWeight: 'bold',
-                      cursor: canSaveProduct ? 'pointer' : 'not-allowed',
-                      opacity: canSaveProduct ? 1 : 0.6,
+                      cursor: canSubmitProduct ? 'pointer' : 'not-allowed',
+                      opacity: canSubmitProduct ? 1 : 0.6,
                       fontFamily: 'Tahoma, Arial, sans-serif',
-                      boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999',
+                      boxShadow: canSubmitProduct ? 'inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 0 #fff, 0 1px 0 #999',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px'
                     }}
-                    disabled={!canSaveProduct} 
+                    disabled={!canSubmitProduct} 
                     onClick={saveProduct}
                     onMouseDown={(e) => {
-                      if (canSaveProduct) {
-                        e.target.style.background = 'linear-gradient(to bottom, #d0d0d0 0%, #f0f0f0 100%)';
-                        e.target.style.boxShadow = 'inset 0 1px 0 #999, 0 1px 0 #fff';
+                      if (canSubmitProduct) {
+                        e.target.style.background = 'linear-gradient(to bottom, #45a049 0%, #3d8b40 100%)';
+                        e.target.style.boxShadow = 'inset 0 1px 0 #2e7d32, 0 1px 2px rgba(0,0,0,0.1)';
                       }
                     }}
                     onMouseUp={(e) => {
-                      if (canSaveProduct) {
-                        e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
-                        e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                      if (canSubmitProduct) {
+                        e.target.style.background = 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)';
+                        e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.1)';
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (canSaveProduct) {
-                        e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
-                        e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                      if (canSubmitProduct) {
+                        e.target.style.background = 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)';
+                        e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.1)';
                       }
                     }}
                   >
@@ -1101,6 +1329,7 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                     <span>🗑️</span>
                     Limpiar
                   </button>
+                  
             </div>
             </div>
           </div>
@@ -1303,7 +1532,15 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
           </div>
           {(bId || showNewBrandForm) && (
           <div style={{ overflow: 'auto' }}>
-            <div style={groupHeader()}>{bId ? 'Editar' : 'Nueva'} marca</div>
+            <div style={groupHeader()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>{bId ? 'Editar' : 'Nueva'} marca</span>
+                <button 
+                  onClick={() => { setBId(''); setShowNewBrandForm(false); }}
+                  style={{ padding: '4px 8px', background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)', border: '1px solid #999', fontSize: 11, cursor: 'pointer' }}
+                >Ocultar</button>
+              </div>
+            </div>
             <div style={groupBody()}>
             {/* Sección principal de la marca (estética Windows XP) */}
             <div style={{ 
@@ -1396,14 +1633,76 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
             )}
 
             {/* Acciones */}
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : 'repeat(2, minmax(140px,1fr))', gap: 8, justifyItems: 'center' }}>
               <button 
-                style={btn()} 
+                style={{
+                  padding: '6px 12px',
+                  background: isBrandDirty ? 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)' : 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
+                  border: isBrandDirty ? '1px solid #2e7d32' : '1px solid #999',
+                  color: isBrandDirty ? '#fff' : '#000',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  cursor: isBrandDirty ? 'pointer' : 'not-allowed',
+                  opacity: isBrandDirty ? 1 : 0.6,
+                  fontFamily: 'Tahoma, Arial, sans-serif',
+                  boxShadow: isBrandDirty ? 'inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                }} 
+                disabled={!isBrandDirty}
                 onClick={saveBrand}
+                onMouseDown={(e) => {
+                  if (isBrandDirty) {
+                    e.target.style.background = 'linear-gradient(to bottom, #45a049 0%, #3d8b40 100%)';
+                    e.target.style.boxShadow = 'inset 0 1px 0 #2e7d32, 0 1px 2px rgba(0,0,0,0.1)';
+                  }
+                }}
+                onMouseUp={(e) => {
+                  if (isBrandDirty) {
+                    e.target.style.background = 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)';
+                    e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.1)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (isBrandDirty) {
+                    e.target.style.background = 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)';
+                    e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.1)';
+                  }
+                }}
               >
+                <span>💾</span>
                 {bId ? 'Guardar cambios' : 'Crear marca'}
               </button>
-              <button style={btn()} onClick={clearBrandForm}>Limpiar</button>
+              <button 
+                style={{
+                  padding: '6px 12px',
+                  background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
+                  border: '1px solid #999',
+                  color: '#000',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontFamily: 'Tahoma, Arial, sans-serif',
+                  boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                onClick={clearBrandForm}
+                onMouseDown={(e) => {
+                  e.target.style.background = 'linear-gradient(to bottom, #d0d0d0 0%, #f0f0f0 100%)';
+                  e.target.style.boxShadow = 'inset 0 1px 0 #999, 0 1px 0 #fff';
+                }}
+                onMouseUp={(e) => {
+                  e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                  e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                  e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                }}
+              >
+                <span>🗑️</span>
+                Limpiar
+              </button>
             </div>
             </div>
           </div>
@@ -1415,61 +1714,35 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
         <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
           <div style={groupHeader()}>Registro de Ventas</div>
           <div style={groupBody()}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
+            <div style={{
+              display: 'flex',
+              justifyContent: isNarrow ? 'flex-end' : 'space-between',
               alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 8,
               marginBottom: '12px'
             }}>
               <div style={{ fontSize: '12px', color: '#666' }}>
                 Total de ventas: {sales.length}
               </div>
-              <button 
-                onClick={() => {
-                  // Simular carga de ventas
-                  const mockSales = [
-                    {
-                      id: 1,
-                      customerName: 'Juan Pérez',
-                      customerEmail: 'juan@email.com',
-                      total: 2300,
-                      paymentMethod: 'tarjeta',
-                      date: new Date('2024-01-15'),
-                      seller: 'admin@empresa.com',
-                      items: [
-                        { name: 'iPhone 17', quantity: 1, price: 1000 },
-                        { name: 'Samsung Galaxy S23', quantity: 1, price: 1300 }
-                      ]
-                    },
-                    {
-                      id: 2,
-                      customerName: 'María García',
-                      customerEmail: 'maria@email.com',
-                      total: 1000,
-                      paymentMethod: 'efectivo',
-                      date: new Date('2024-01-14'),
-                      seller: 'admin@empresa.com',
-                      items: [
-                        { name: 'iPhone 17', quantity: 1, price: 1000 }
-                      ]
-                    }
-                  ];
-                  setSales(mockSales);
-                }}
-                style={{
-                  padding: '6px 12px',
-                  background: 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)',
-                  border: '1px solid #2e7d32',
-                  borderRadius: '3px',
-                  color: 'white',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  fontFamily: 'Tahoma, Arial, sans-serif'
-                }}
-              >
-                🔄 Cargar Ventas
-              </button>
+            {/* Botón eliminado: las ventas ahora se cargan automáticamente */}
+            <button 
+              onClick={() => setSalesRefreshToken(x => x + 1)}
+              style={{
+                padding: '6px 12px',
+                background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
+                border: '1px solid #999',
+                borderRadius: '3px',
+                color: '#000',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                fontFamily: 'Tahoma, Arial, sans-serif',
+                marginLeft: 8
+              }}
+            >
+              🔁 Actualizar
+            </button>
             </div>
 
             {sales.length === 0 ? (
@@ -1499,19 +1772,19 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                   background: 'linear-gradient(to bottom, #f0f0f0 0%, #e0e0e0 100%)',
                   borderBottom: '1px solid #999',
                   display: 'grid',
-                  gridTemplateColumns: '80px 1fr 120px 100px 120px 100px',
+                  gridTemplateColumns: '80px 1fr 120px 100px 120px 160px',
                   gap: '8px',
                   padding: '8px 12px',
                   fontSize: '11px',
                   fontWeight: 'bold',
                   color: '#333'
                 }}>
-                  <div>ID</div>
+                  <div>#</div>
                   <div>Cliente</div>
                   <div>Total</div>
                   <div>Pago</div>
                   <div>Fecha</div>
-                  <div>Vendedor</div>
+                  <div>Acciones</div>
                 </div>
 
                 {/* Filas de la tabla */}
@@ -1519,7 +1792,7 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                   {sales.map((sale, index) => (
                     <div key={sale.id} style={{
                       display: 'grid',
-                      gridTemplateColumns: '80px 1fr 120px 100px 120px 100px',
+                      gridTemplateColumns: '80px 1fr 120px 100px 120px 160px',
                       gap: '8px',
                       padding: '8px 12px',
                       borderBottom: index < sales.length - 1 ? '1px solid #eee' : 'none',
@@ -1527,9 +1800,7 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                       alignItems: 'center',
                       background: index % 2 === 0 ? '#fff' : '#f9f9f9'
                     }}>
-                      <div style={{ fontWeight: 'bold', color: '#316ac5' }}>
-                        #{sale.id}
-                      </div>
+                    <div style={{ fontWeight: 'bold', color: '#316ac5' }}>#{index + 1}</div>
                       <div>
                         <div style={{ fontWeight: 'bold' }}>{sale.customerName}</div>
                         <div style={{ fontSize: '10px', color: '#666' }}>{sale.customerEmail}</div>
@@ -1555,9 +1826,10 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                       <div style={{ fontSize: '10px', color: '#666' }}>
                         {sale.date.toLocaleDateString()}
                       </div>
-                      <div style={{ fontSize: '10px', color: '#666' }}>
-                        {sale.seller}
-                      </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button style={btn()} onClick={() => startEditSale(sale)}>Editar</button>
+                      <button style={btn()} onClick={() => onDeleteSale(sale.id)}>Eliminar</button>
+                    </div>
                     </div>
                   ))}
                 </div>
@@ -1602,6 +1874,48 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
               </div>
             )}
           </div>
+        {/* Modal de edición de venta */}
+        {editingSale && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+            <div style={{ width: 420, background: '#fff', border: '1px solid #999', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+              <div style={{ background: 'linear-gradient(#e6f0ff,#cfe0ff)', borderBottom: '1px solid #7aa2e8', padding: 8, fontWeight: 'bold' }}>Editar venta</div>
+              <div style={{ padding: 12 }}>
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, marginBottom: 4 }}>Cliente</div>
+                  <input value={editCustomerName} onChange={e => setEditCustomerName(e.target.value)} style={{ width: '100%', border: '1px solid #999', padding: '4px 6px', fontSize: 11 }} />
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, marginBottom: 4 }}>Email</div>
+                  <input value={editCustomerEmail} onChange={e => setEditCustomerEmail(e.target.value)} style={{ width: '100%', border: '1px solid #999', padding: '4px 6px', fontSize: 11 }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 11, marginBottom: 4 }}>Pago</div>
+                    <select value={editPaymentMethod} onChange={e => setEditPaymentMethod(e.target.value)} style={{ width: '100%', border: '1px solid #999', padding: '4px 6px', fontSize: 11 }}>
+                      <option value="">—</option>
+                      <option value="efectivo">Efectivo</option>
+                      <option value="tarjeta">Tarjeta</option>
+                      <option value="transferencia">Transferencia</option>
+                      <option value="paypal">PayPal</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, marginBottom: 4 }}>Total</div>
+                    <input type="number" min="0" step="0.01" value={editTotal} onChange={e => setEditTotal(e.target.value)} style={{ width: '100%', border: '1px solid #999', padding: '4px 6px', fontSize: 11 }} />
+                  </div>
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 11, marginBottom: 4 }}>Fecha</div>
+                  <input type="datetime-local" value={editDate} onChange={e => setEditDate(e.target.value)} style={{ width: '100%', border: '1px solid #999', padding: '4px 6px', fontSize: 11 }} />
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+                  <button style={btn()} onClick={() => setEditingSale(null)}>Cancelar</button>
+                  <button style={btn()} onClick={saveEditSale}>Guardar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         </div>
       )}
       {/* cierre contenedor columna */}

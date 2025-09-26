@@ -28,6 +28,7 @@ function Catalog() {
   const [cart, setCart] = useState([]);
   const [showCheckout, setShowCheckout] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [cartWarnings, setCartWarnings] = useState({}); // { productId: 'sin_stock' | 'bajo_minimo' }
   const [customerData, setCustomerData] = useState({
     name: '',
     email: '',
@@ -223,6 +224,8 @@ function Catalog() {
             brandId: x.brand_id, // Usar brand_id de Supabase
             price: Number(x.price || 0), 
             image: x.image || '',
+            stock_quantity: Number(x.stock_quantity || 0),
+            min_stock: Number(x.min_stock || 0),
             user_id: x.user_id // Incluir user_id para debugging
           }));
           dispatch({ type: ACTIONS.SET_PRODUCTS, payload: mappedProducts });
@@ -285,38 +288,143 @@ function Catalog() {
 
   const clearCart = () => {
     setCart([]);
+    setCartWarnings({});
     setShowCart(false);
     setShowCheckout(false);
   };
+
+  // Verificar stock del carrito al abrirlo o cambiar cantidades
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!supabase || !supabase.from || cart.length === 0) { setCartWarnings({}); return; }
+        const ids = cart.map(i => i.id);
+        const { data, error } = await supabase.from('products').select('id, stock_quantity, min_stock').in('id', ids);
+        if (error) return;
+        const m = new Map(); data.forEach(r => m.set(r.id, r));
+        const warnings = {};
+        for (const it of cart) {
+          const row = m.get(it.id);
+          const current = row ? Number(row.stock_quantity || 0) : 0;
+          const minStock = row ? Number(row.min_stock || 0) : 0;
+          const remaining = current - Number(it.quantity || 1);
+          if (Number(it.quantity || 1) > current) warnings[it.id] = 'sin_stock';
+          else if (remaining < minStock) warnings[it.id] = 'bajo_minimo';
+        }
+        setCartWarnings(warnings);
+      } catch (_e) {}
+    })();
+  }, [cart, supabase]);
 
   const processSale = async () => {
     if (cart.length === 0) return;
     
     try {
-      // Crear datos de la venta
+      // 0) Validación de stock y min_stock
+      if (supabase && supabase.from && cart.length > 0) {
+        const productIds = cart.map(i => i.id);
+        const { data: stockRows, error: stockError } = await supabase
+          .from('products')
+          .select('id, stock_quantity, min_stock, name')
+          .in('id', productIds);
+        if (stockError) throw stockError;
+
+        const stockById = new Map();
+        (stockRows || []).forEach(r => stockById.set(r.id, r));
+
+        for (const item of cart) {
+          const row = stockById.get(item.id);
+          if (!row) {
+            alert(`No se pudo validar stock para el producto ${item.name}.`);
+            return;
+          }
+          const current = Number(row.stock_quantity || 0);
+          const minStock = Number(row.min_stock || 0);
+          const remaining = current - Number(item.quantity || 1);
+          if (Number(item.quantity || 1) > current) {
+            alert(`Stock insuficiente para ${item.name}. Disponible: ${current}`);
+            return;
+          }
+          if (remaining < minStock) {
+            alert(`No se puede realizar la venta de ${item.name}. El stock quedaría por debajo del mínimo (${minStock}).`);
+            return;
+          }
+        }
+      }
+
+      // 1) Insertar venta en Supabase
+      const totalAmount = getCartTotal();
+      const notes = { paymentMethod, customerData };
+      let insertedSale = null;
+
+      if (supabase && supabase.from) {
+        // Generar id de venta en cliente para evitar SELECT y cumplir con policies
+        const saleId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        const payload = {
+          id: saleId,
+          employee_id: (state.user && state.user.id) ? state.user.id : null,
+          total_amount: Number(totalAmount),
+          sale_date: new Date().toISOString(),
+          notes: JSON.stringify(notes)
+        };
+        const { error } = await supabase.from('sales').insert(payload, { returning: 'minimal' });
+        if (error) throw error;
+        insertedSale = { id: saleId, sale_date: payload.sale_date };
+
+        // 2) Insertar ítems de la venta
+        const itemsPayload = cart.map(item => ({
+          sale_id: insertedSale.id,
+          product_id: item.id,
+          quantity: Number(item.quantity || 1),
+          unit_price: Number(item.price || 0),
+          subtotal: Number((item.price || 0) * (item.quantity || 1))
+        }));
+        const { error: itemsError } = await supabase.from('sale_items').insert(itemsPayload, { returning: 'minimal' });
+        if (itemsError) throw itemsError;
+
+        // 3) Descontar stock por cada ítem
+        // Se realiza actualización por producto para mantener claridad
+        const { data: stockRows2 } = await supabase
+          .from('products')
+          .select('id, stock_quantity')
+          .in('id', cart.map(i => i.id));
+        const stockMap2 = new Map();
+        (stockRows2 || []).forEach(r => stockMap2.set(r.id, Number(r.stock_quantity || 0)));
+
+        for (const item of cart) {
+          const current = stockMap2.has(item.id) ? stockMap2.get(item.id) : 0;
+          const newStock = current - Number(item.quantity || 1);
+          await supabase.from('products').update({ stock_quantity: newStock }).eq('id', item.id);
+        }
+      }
+
+      // 3) Preparar datos para el modal usando el ID real
       const sale = {
-        id: Date.now(), // ID temporal
+        id: insertedSale ? insertedSale.id : Date.now(),
         items: cart,
-        total: getCartTotal(),
+        total: totalAmount,
         paymentMethod,
         customerData,
-        date: new Date(),
+        date: insertedSale && insertedSale.sale_date ? new Date(insertedSale.sale_date) : new Date(),
         seller: (state.user && state.user.email) || 'Usuario'
       };
-      
-      // Guardar datos de la venta para mostrar en el modal
+
       setSaleData(sale);
-      
-      // Aquí se procesaría la venta en la base de datos
-      console.log('Procesando venta:', sale);
-      
-      // Mostrar modal de éxito
       setShowSuccessModal(true);
       setShowCheckout(false);
+
+      // Notificar al panel de Admin para refrescar ventas, si está abierto
+      try {
+        if (dispatch && ACTIONS && ACTIONS.EMIT_EVENT) {
+          dispatch({ type: ACTIONS.EMIT_EVENT, payload: { name: 'sales:refresh' } });
+        }
+        // Fallback: emitir evento del navegador que Admin puede escuchar
+        window.dispatchEvent(new CustomEvent('sales:refresh'));
+      } catch (_e) {}
       
     } catch (error) {
       console.error('Error procesando venta:', error);
-      alert('Error al procesar la venta');
+      alert('Error al procesar la venta en la base de datos');
     }
   };
 
@@ -631,6 +739,23 @@ function Catalog() {
                           }}>
                             {p.category || 'General'}
                           </div>
+                          {/* Badge de stock bajo */}
+                          {typeof p.stock_quantity === 'number' && typeof p.min_stock === 'number' && p.stock_quantity <= p.min_stock && (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '4px',
+                              right: '4px',
+                              background: '#ff9800',
+                              color: '#000',
+                              padding: '2px 6px',
+                              fontSize: '9px',
+                              fontWeight: 'bold',
+                              border: '1px solid #e07b00',
+                              boxShadow: 'inset 0 1px 0 #ffd08a'
+                            }}>
+                              Bajo stock
+                            </div>
+                          )}
                         </div>
                         
                         {/* Contenido de la tarjeta */}
@@ -880,6 +1005,10 @@ function Catalog() {
                               }}>
                                 <strong>Precio:</strong> ${p.price}
                               </div>
+                              <div style={{ fontSize: '12px', color: '#333' }}>
+                                <strong>Disponible:</strong> {typeof p.stock_quantity === 'number' ? p.stock_quantity : '—'}
+                                {typeof p.min_stock === 'number' ? ` (mínimo ${p.min_stock})` : ''}
+                              </div>
                             </div>
                             
                             {p.description && (
@@ -971,15 +1100,17 @@ function Catalog() {
             ) : (
               <>
                 {/* Lista de productos */}
-                {cart.map(item => (
+                {cart.map(item => {
+                  const warn = cartWarnings[item.id];
+                  return (
                   <div key={item.id} style={{
                     display: 'flex',
                     alignItems: 'center',
                     padding: '12px',
-                    border: '1px solid #ddd',
+                    border: warn ? '1px solid #d32f2f' : '1px solid #ddd',
                     borderRadius: '4px',
                     marginBottom: '8px',
-                    background: '#f9f9f9'
+                    background: warn ? '#fff3f3' : '#f9f9f9'
                   }}>
                     <div style={{ width: '60px', height: '60px', marginRight: '12px' }}>
                       {item.image ? (
@@ -1009,6 +1140,11 @@ function Catalog() {
                       <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
                         {brandName(item.brandId)} • ${item.price}
                       </div>
+                      {warn && (
+                        <div style={{ fontSize: '11px', color: '#b71c1c', marginBottom: '4px' }}>
+                          {warn === 'sin_stock' ? 'Cantidad supera el stock disponible.' : 'La venta dejaría el stock por debajo del mínimo.'}
+                        </div>
+                      )}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <button 
                           onClick={() => updateQuantity(item.id, item.quantity - 1)}
@@ -1062,7 +1198,7 @@ function Catalog() {
                       🗑️
                     </button>
                   </div>
-                ))}
+                )})}
 
                 {/* Total */}
                 <div style={{
@@ -1098,17 +1234,20 @@ function Catalog() {
                     🗑️ Limpiar Carrito
                   </button>
                   <button 
-                    onClick={() => setShowCheckout(true)}
+                    onClick={() => setShowCheckout(Object.keys(cartWarnings).length === 0)}
                     style={{
                       flex: 2,
                       padding: '10px',
-                      background: 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)',
+                      background: Object.keys(cartWarnings).length === 0 
+                        ? 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)' 
+                        : 'linear-gradient(to bottom, #ccc 0%, #bbb 100%)',
                       border: '1px solid #2e7d32',
                       borderRadius: '4px',
                       color: 'white',
                       fontSize: '12px',
                       fontWeight: 'bold',
-                      cursor: 'pointer'
+                      cursor: Object.keys(cartWarnings).length === 0 ? 'pointer' : 'not-allowed',
+                      opacity: Object.keys(cartWarnings).length === 0 ? 1 : 0.6
                     }}
                   >
                     💳 Proceder al Pago
