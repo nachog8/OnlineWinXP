@@ -37,6 +37,20 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
   // Regla simplificada y prioritaria: cualquier usuario distinto al empleado tiene acceso
   const isAdmin = !!emailStr && !isEmployee;
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [sales, setSales] = useState([]);
+
+  // Responsive: detectar ventana angosta para apilar columnas
+  const [isNarrow, setIsNarrow] = useState(false);
+  React.useEffect(() => {
+    function handleResize() {
+      try {
+        setIsNarrow(window.innerWidth <= 980);
+      } catch (_e) {}
+    }
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Filtros y búsqueda
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,6 +60,9 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
   
   // Control de visibilidad del formulario de nuevo producto
   const [showNewProductForm, setShowNewProductForm] = useState(false);
+  
+  // Control de visibilidad del formulario de nueva marca
+  const [showNewBrandForm, setShowNewBrandForm] = useState(false);
 
   // Productos
   const [pId, setPId] = useState('');
@@ -122,8 +139,15 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
     clearProductForm();
     setShowNewProductForm(true);
   }
+  
+  function showNewBrand() {
+    clearBrandForm();
+    setShowNewBrandForm(true);
+  }
+  
   function clearBrandForm() {
     setBId(''); setBName(''); setBDesc(''); setBLogo('');
+    setShowNewBrandForm(false);
   }
 
   function clearFilters() {
@@ -270,6 +294,10 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
           <img className="com__function_bar__icon--normalize" src={folderOpen} alt="" />
           <span className="com__function_bar__text">Marcas</span>
         </div>
+        <div className={`com__function_bar__button ${tab === 'sales' ? 'com__function_bar__button--active' : ''}`} onClick={() => setTab('sales')}>
+          <img className="com__function_bar__icon--normalize" src={folderOpen} alt="" />
+          <span className="com__function_bar__text">Ventas</span>
+        </div>
       </section>
       <section className="com__address_bar">
         <div className="com__address_bar__title">Dirección</div>
@@ -304,9 +332,9 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                 )}
                 {tab === 'brands' && (
                   <div className="com__content__left__card__row">
-                    <button style={btn()} onClick={clearBrandForm}>
+                    <button style={btn()} onClick={showNewBrandForm ? clearBrandForm : showNewBrand}>
                       <img src={edit} alt="" style={{ width: '16px', height: '16px', marginRight: '4px' }} />
-                      Nueva marca
+                      {showNewBrandForm ? 'Ocultar formulario' : 'Nueva marca'}
                     </button>
                   </div>
                 )}
@@ -581,11 +609,11 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
       )}
 
       {tab === 'products' && (
-        <div style={{ display: 'grid', gridTemplateColumns: (pId || showNewProductForm) ? '2fr 1fr' : '1fr', gap: 12, flex: 1 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: (pId || showNewProductForm) && !isNarrow ? '2fr 1fr' : '1fr', gap: 12, flex: 1 }}>
           <div style={{ overflow: 'auto' }}>
             <div style={groupHeader()}>Productos</div>
             <div style={groupBody()}>
-            <div style={{ display: 'grid', gridTemplateColumns: (pId || showNewProductForm) ? 'repeat(auto-fill,minmax(240px,1fr))' : 'repeat(auto-fill,minmax(280px,1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: (pId || showNewProductForm) && !isNarrow ? 'repeat(auto-fill,minmax(240px,1fr))' : 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
               {filteredProducts.map(p => (
                 <div key={p.id} style={{ 
                   border: '1px solid #b0c4ff', 
@@ -629,16 +657,18 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                       position: 'absolute',
                       top: '4px',
                       right: '4px',
-                      background: '#316ac5',
+                      background: 'linear-gradient(to bottom, #5a8ddb 0%, #316ac5 100%)',
                       color: 'white',
-                      padding: '2px 6px',
+                      padding: '3px 8px',
                       fontSize: '9px',
                       fontWeight: 'bold',
                       textTransform: 'uppercase',
                       border: '1px solid #1e4a8c',
-                      boxShadow: 'inset 0 1px 0 #5a8ddb'
+                      borderRadius: '3px',
+                      boxShadow: 'inset 0 1px 0 #7ba3e0, 0 1px 2px rgba(0,0,0,0.2)',
+                      textShadow: '0 1px 1px rgba(0,0,0,0.3)'
                     }}>
-                      {p.category || 'General'}
+                      {p.category === 'general' ? 'ELECTRÓNICOS' : (p.category || 'GENERAL').toUpperCase()}
                     </div>
                   </div>
                   
@@ -662,10 +692,16 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                         color: '#333', 
                         marginBottom: '2px',
                         display: 'flex',
-                        alignItems: 'center'
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}>
-                        <span style={{ marginRight: '4px', fontSize: '10px' }}>🏷️</span>
-                        <span>{(function(){ const fb=state.brands.find(b=>b.id===p.brandId); return (fb && fb.name) || 'Sin marca'; })()}</span>
+                        <span style={{ 
+                          marginRight: '4px', 
+                          fontSize: '12px',
+                          color: '#ffa500',
+                          textShadow: '0 1px 1px rgba(0,0,0,0.1)'
+                        }}>🏷️</span>
+                        <span style={{ fontWeight: '500' }}>{(function(){ const fb=state.brands.find(b=>b.id===p.brandId); return (fb && fb.name) || 'Sin marca'; })()}</span>
                       </div>
                     </div>
                     
@@ -681,24 +717,26 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                     </div>
                     
                     {/* Botones de acción estilo Windows XP */}
-                    <div style={{ display: 'flex', gap: '4px' }}>
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                       <button 
                         onClick={() => loadProduct(p.id)}
                         style={{
                           flex: 1,
-                          padding: '4px 8px',
-                          background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
-                          border: '1px solid #999',
+                          padding: '6px 10px',
+                          background: 'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)',
+                          border: '1px outset #f0f0f0',
                           borderRadius: '3px',
                           color: '#000',
                           fontSize: '11px',
+                          fontWeight: 'bold',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '4px',
                           fontFamily: 'Tahoma, Arial, sans-serif',
-                          boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                          boxShadow: 'inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.1)',
+                          textShadow: '0 1px 0 rgba(255,255,255,0.8)'
                         }}
                         onMouseDown={(e) => {
                           e.target.style.background = 'linear-gradient(to bottom, #d0d0d0 0%, #f0f0f0 100%)';
@@ -720,31 +758,33 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                         onClick={() => deleteProduct(p.id)}
                         style={{
                           flex: 1,
-                          padding: '4px 8px',
-                          background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
-                          border: '1px solid #999',
+                          padding: '6px 10px',
+                          background: 'linear-gradient(to bottom, #ff6b6b 0%, #ff5252 100%)',
+                          border: '1px outset #ff5252',
                           borderRadius: '3px',
-                          color: '#000',
+                          color: '#fff',
                           fontSize: '11px',
+                          fontWeight: 'bold',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '4px',
                           fontFamily: 'Tahoma, Arial, sans-serif',
-                          boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                          boxShadow: 'inset 0 1px 0 #ff8a80, 0 1px 2px rgba(0,0,0,0.2)',
+                          textShadow: '0 1px 1px rgba(0,0,0,0.3)'
                         }}
                         onMouseDown={(e) => {
-                          e.target.style.background = 'linear-gradient(to bottom, #d0d0d0 0%, #f0f0f0 100%)';
-                          e.target.style.boxShadow = 'inset 0 1px 0 #999, 0 1px 0 #fff';
+                          e.target.style.background = 'linear-gradient(to bottom, #ff5252 0%, #ff6b6b 100%)';
+                          e.target.style.boxShadow = 'inset 0 1px 0 #ff8a80, 0 1px 1px rgba(0,0,0,0.2)';
                         }}
                         onMouseUp={(e) => {
-                          e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
-                          e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                          e.target.style.background = 'linear-gradient(to bottom, #ff6b6b 0%, #ff5252 100%)';
+                          e.target.style.boxShadow = 'inset 0 1px 0 #ff8a80, 0 1px 2px rgba(0,0,0,0.2)';
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
-                          e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                          e.target.style.background = 'linear-gradient(to bottom, #ff6b6b 0%, #ff5252 100%)';
+                          e.target.style.boxShadow = 'inset 0 1px 0 #ff8a80, 0 1px 2px rgba(0,0,0,0.2)';
                         }}
                       >
                         <span style={{ fontSize: '10px' }}>🗑️</span>
@@ -760,12 +800,9 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
           {(pId || showNewProductForm) && (
           <div style={{ overflow: 'auto' }}>
               <div style={groupHeader()}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '14px' }}>📝</span>
                   {pId ? 'Editar producto' : 'Nuevo producto'}
-                </span>
               </div>
-            <div style={groupBody()}>
+            <div style={{ ...groupBody(), maxWidth: isNarrow ? '100%' : 'unset' }}>
                 {/* Sección de información básica */}
                 <div style={{ 
                   background: '#f0f0f0',
@@ -778,14 +815,8 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                     fontSize: '11px', 
                     fontWeight: 'bold', 
                     color: '#000', 
-                    marginBottom: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <span>ℹ️</span>
-                    Información básica
-                  </div>
+                    marginBottom: '6px'
+                  }}>Información básica</div>
                   <Field label="Nombre del producto">
                     <input 
                       value={pName} 
@@ -800,6 +831,8 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                         fontFamily: 'Tahoma, Arial, sans-serif',
                         boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
                       }}
+                      onFocus={(e) => e.target.style.border = '1px solid #4a90e2'}
+                      onBlur={(e) => e.target.style.border = '1px solid #999'}
                     />
                   </Field>
                   <Field label="Descripción">
@@ -818,6 +851,8 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                         resize: 'vertical',
                         boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
                       }}
+                      onFocus={(e) => e.target.style.border = '1px solid #4a90e2'}
+                      onBlur={(e) => e.target.style.border = '1px solid #999'}
                     />
                   </Field>
                 </div>
@@ -834,15 +869,9 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                     fontSize: '11px', 
                     fontWeight: 'bold', 
                     color: '#000', 
-                    marginBottom: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <span>🏷️</span>
-                    Categorización
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    marginBottom: '6px'
+                  }}>Categorización</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '8px' }}>
             <Field label="Categoría">
                       <select 
                         value={pCategory} 
@@ -857,6 +886,8 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                           cursor: 'pointer',
                           boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
                         }}
+                        onFocus={(e) => e.target.style.border = '1px solid #4a90e2'}
+                        onBlur={(e) => e.target.style.border = '1px solid #999'}
                       >
                 <option value="general">General</option>
                 <option value="otros">Otros</option>
@@ -876,6 +907,8 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                           cursor: 'pointer',
                           boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
                         }}
+                        onFocus={(e) => e.target.style.border = '1px solid #4a90e2'}
+                        onBlur={(e) => e.target.style.border = '1px solid #999'}
                       >
                         <option value="">Seleccione una marca</option>
                 {state.brands.map(b => (
@@ -898,14 +931,8 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                     fontSize: '11px', 
                     fontWeight: 'bold', 
                     color: '#000', 
-                    marginBottom: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <span>💰</span>
-                    Precio
-                  </div>
+                    marginBottom: '6px'
+                  }}>Precio</div>
                   <Field label="Precio ($)">
                     <input 
                       type="number" 
@@ -923,6 +950,8 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                         fontFamily: 'Tahoma, Arial, sans-serif',
                         boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
                       }}
+                      onFocus={(e) => e.target.style.border = '1px solid #4a90e2'}
+                      onBlur={(e) => e.target.style.border = '1px solid #999'}
                     />
                   </Field>
                 </div>
@@ -939,14 +968,8 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                     fontSize: '11px', 
                     fontWeight: 'bold', 
                     color: '#000', 
-                    marginBottom: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <span>🖼️</span>
-                    Imagen del producto
-                  </div>
+                    marginBottom: '6px'
+                  }}>Imagen del producto</div>
                   <Field label="URL de la imagen">
                     <input 
                       value={pImage} 
@@ -961,6 +984,8 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                         fontFamily: 'Tahoma, Arial, sans-serif',
                         boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
                       }}
+                      onFocus={(e) => e.target.style.border = '1px solid #4a90e2'}
+                      onBlur={(e) => e.target.style.border = '1px solid #999'}
                     />
                   </Field>
             {pPreview && (
@@ -1084,22 +1109,191 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
       )}
 
       {tab === 'brands' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, flex: 1 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: (bId || showNewBrandForm) ? '2fr 1fr' : '1fr', gap: 12, flex: 1 }}>
           <div style={{ overflow: 'auto' }}>
             <div style={groupHeader()}>Marcas</div>
             <div style={groupBody()}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: (bId || showNewBrandForm) ? 'repeat(auto-fill,minmax(240px,1fr))' : 'repeat(auto-fill,minmax(280px,1fr))', gap: 12 }}>
               {filteredBrands.map(b => (
-                <div key={b.id} style={{ border: '1px solid #b0c4ff', background: '#fff', boxShadow: 'inset 0 0 0 1px #dde6ff' }}>
-                  <div style={{ height: 100, background: '#f4f4f4', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #ccd6ff' }}>
-                    {b.logo ? <img alt={b.name} src={b.logo} style={{ maxWidth: '100%', maxHeight: '100%' }} /> : <span style={{ color: '#888' }}>Sin logo</span>}
+                <div key={b.id} style={{ 
+                  border: '1px solid #b0c4ff', 
+                  background: '#fff', 
+                  boxShadow: 'inset 0 0 0 1px #dde6ff',
+                  fontFamily: 'Tahoma, Arial, sans-serif'
+                }}>
+                  {/* Imagen del logo */}
+                  <div style={{ 
+                    height: 140, 
+                    background: '#f4f4f4', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    borderBottom: '1px solid #ccd6ff',
+                    position: 'relative'
+                  }}>
+                    {b.logo ? (
+                      <img 
+                        alt={b.name} 
+                        src={b.logo} 
+                        style={{ 
+                          maxWidth: '100%', 
+                          maxHeight: '100%'
+                        }} 
+                      />
+                    ) : (
+                      <div style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        color: '#888',
+                        fontSize: '12px'
+                      }}>
+                        <span style={{ fontSize: '24px', marginBottom: '4px' }}>🏢</span>
+                        <span>Sin logo</span>
                   </div>
-                  <div style={{ padding: 8 }}>
-                    <div style={{ fontWeight: 'bold', textAlign: 'center' }}>{b.name}</div>
-                    <div style={{ fontSize: 12, color: '#333', marginTop: 4 }}>{b.description || '—'}</div>
-                    <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                      <button style={btn()} onClick={() => loadBrand(b.id)}>✎ Editar</button>
-                      <button style={btn()} disabled={state.products.some(p => p.brandId === b.id)} onClick={() => deleteBrand(b.id)}>🗑 Eliminar</button>
+                    )}
+                    {/* Badge de tipo de marca */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '4px',
+                      right: '4px',
+                      background: 'linear-gradient(to bottom, #5a8ddb 0%, #316ac5 100%)',
+                      color: 'white',
+                      padding: '3px 8px',
+                      fontSize: '9px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      border: '1px solid #1e4a8c',
+                      borderRadius: '3px',
+                      boxShadow: 'inset 0 1px 0 #7ba3e0, 0 1px 2px rgba(0,0,0,0.2)',
+                      textShadow: '0 1px 1px rgba(0,0,0,0.3)'
+                    }}>
+                      MARCA
+                    </div>
+                  </div>
+                  
+                  {/* Contenido de la tarjeta */}
+                  <div style={{ padding: '8px' }}>
+                    {/* Nombre de la marca */}
+                    <div style={{ 
+                      fontWeight: 'bold', 
+                      textAlign: 'center',
+                      fontSize: '13px',
+                      color: '#000',
+                      marginBottom: '6px'
+                    }}>
+                      {b.name}
+                    </div>
+                    
+                    {/* Descripción de la marca */}
+                    <div style={{ marginBottom: '8px' }}>
+                      <div style={{ 
+                        fontSize: 11, 
+                        color: '#333', 
+                        marginBottom: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <span style={{ 
+                          marginRight: '4px', 
+                          fontSize: '12px',
+                          color: '#ffa500',
+                          textShadow: '0 1px 1px rgba(0,0,0,0.1)'
+                        }}>📝</span>
+                        <span style={{ fontWeight: '500' }}>{b.description || 'Sin descripción'}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Botones de acción estilo Windows XP */}
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                      <button 
+                        onClick={() => loadBrand(b.id)}
+                        style={{
+                          flex: 1,
+                          padding: '6px 10px',
+                          background: 'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)',
+                          border: '1px outset #f0f0f0',
+                          borderRadius: '3px',
+                          color: '#000',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          fontFamily: 'Tahoma, Arial, sans-serif',
+                          boxShadow: 'inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.1)',
+                          textShadow: '0 1px 0 rgba(255,255,255,0.8)'
+                        }}
+                        onMouseDown={(e) => {
+                          e.target.style.background = 'linear-gradient(to bottom, #d0d0d0 0%, #f0f0f0 100%)';
+                          e.target.style.boxShadow = 'inset 0 1px 0 #999, 0 1px 0 #fff';
+                        }}
+                        onMouseUp={(e) => {
+                          e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                          e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                          e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                        }}
+                      >
+                        <span style={{ fontSize: '10px' }}>✏️</span>
+                        Editar
+                      </button>
+                      <button 
+                        disabled={state.products.some(p => p.brandId === b.id)}
+                        onClick={() => deleteBrand(b.id)}
+                        style={{
+                          flex: 1,
+                          padding: '6px 10px',
+                          background: state.products.some(p => p.brandId === b.id) 
+                            ? 'linear-gradient(to bottom, #e0e0e0 0%, #d0d0d0 100%)'
+                            : 'linear-gradient(to bottom, #ff6b6b 0%, #ff5252 100%)',
+                          border: state.products.some(p => p.brandId === b.id) 
+                            ? '1px outset #d0d0d0'
+                            : '1px outset #ff5252',
+                          borderRadius: '3px',
+                          color: state.products.some(p => p.brandId === b.id) ? '#999' : '#fff',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          cursor: state.products.some(p => p.brandId === b.id) ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          fontFamily: 'Tahoma, Arial, sans-serif',
+                          boxShadow: state.products.some(p => p.brandId === b.id) 
+                            ? 'inset 0 1px 0 #e0e0e0, 0 1px 2px rgba(0,0,0,0.1)'
+                            : 'inset 0 1px 0 #ff8a80, 0 1px 2px rgba(0,0,0,0.2)',
+                          textShadow: state.products.some(p => p.brandId === b.id) 
+                            ? '0 1px 0 rgba(255,255,255,0.5)'
+                            : '0 1px 1px rgba(0,0,0,0.3)'
+                        }}
+                        onMouseDown={(e) => {
+                          if (!state.products.some(p => p.brandId === b.id)) {
+                            e.target.style.background = 'linear-gradient(to bottom, #ff5252 0%, #ff6b6b 100%)';
+                            e.target.style.boxShadow = 'inset 0 1px 0 #ff8a80, 0 1px 1px rgba(0,0,0,0.2)';
+                          }
+                        }}
+                        onMouseUp={(e) => {
+                          if (!state.products.some(p => p.brandId === b.id)) {
+                            e.target.style.background = 'linear-gradient(to bottom, #ff6b6b 0%, #ff5252 100%)';
+                            e.target.style.boxShadow = 'inset 0 1px 0 #ff8a80, 0 1px 2px rgba(0,0,0,0.2)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!state.products.some(p => p.brandId === b.id)) {
+                            e.target.style.background = 'linear-gradient(to bottom, #ff6b6b 0%, #ff5252 100%)';
+                            e.target.style.boxShadow = 'inset 0 1px 0 #ff8a80, 0 1px 2px rgba(0,0,0,0.2)';
+                          }
+                        }}
+                      >
+                        <span style={{ fontSize: '10px' }}>🗑️</span>
+                        Eliminar
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1107,22 +1301,306 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
             </div>
             </div>
           </div>
+          {(bId || showNewBrandForm) && (
           <div style={{ overflow: 'auto' }}>
             <div style={groupHeader()}>{bId ? 'Editar' : 'Nueva'} marca</div>
             <div style={groupBody()}>
-            <Field label="Nombre"><input value={bName} onChange={e => setBName(e.target.value)} /></Field>
-            <Field label="Descripción"><textarea value={bDesc} onChange={e => setBDesc(e.target.value)} /></Field>
-            <Field label="Logo URL"><input value={bLogo} onChange={e => setBLogo(e.target.value)} /></Field>
+            {/* Sección principal de la marca (estética Windows XP) */}
+            <div style={{ 
+              background: '#f0f0f0', 
+              border: '1px solid #999', 
+              padding: 8, 
+              marginBottom: 8,
+              boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+            }}>
+              <div style={{ 
+                fontSize: '11px', 
+                fontWeight: 'bold', 
+                color: '#000',
+                marginBottom: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4
+              }}>🏢 Datos de la marca</div>
+              <Field label="Nombre">
+                <input 
+                  value={bName} 
+                  onChange={e => setBName(e.target.value)}
+                  placeholder="Ingrese el nombre de la marca..."
+                  style={{
+                    width: '100%',
+                    padding: '4px 6px',
+                    border: '1px solid #999',
+                    fontSize: '11px',
+                    background: '#fff',
+                    fontFamily: 'Tahoma, Arial, sans-serif',
+                    boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                  }}
+                  onFocus={(e) => e.target.style.border = '1px solid #4a90e2'}
+                  onBlur={(e) => e.target.style.border = '1px solid #999'}
+                />
+              </Field>
+              <Field label="Descripción">
+                <textarea 
+                  value={bDesc} 
+                  onChange={e => setBDesc(e.target.value)}
+                  placeholder="Breve descripción..."
+                  rows="3"
+                  style={{
+                    width: '100%',
+                    padding: '4px 6px',
+                    border: '1px solid #999',
+                    fontSize: '11px',
+                    background: '#fff',
+                    fontFamily: 'Tahoma, Arial, sans-serif',
+                    resize: 'vertical',
+                    boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                  }}
+                  onFocus={(e) => e.target.style.border = '1px solid #4a90e2'}
+                  onBlur={(e) => e.target.style.border = '1px solid #999'}
+                />
+              </Field>
+              <Field label="Logo URL">
+                <input 
+                  value={bLogo} 
+                  onChange={e => setBLogo(e.target.value)}
+                  placeholder="https://ejemplo.com/logo.png"
+                  style={{
+                    width: '100%',
+                    padding: '4px 6px',
+                    border: '1px solid #999',
+                    fontSize: '11px',
+                    background: '#fff',
+                    fontFamily: 'Tahoma, Arial, sans-serif',
+                    boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+                  }}
+                  onFocus={(e) => e.target.style.border = '1px solid #4a90e2'}
+                  onBlur={(e) => e.target.style.border = '1px solid #999'}
+                />
+              </Field>
+            </div>
+
+            {/* Vista previa del logo */}
             {bLogo && (
-              <div style={{ marginBottom: 8 }}>
+              <div style={{ 
+                marginBottom: 8,
+                textAlign: 'center',
+                background: '#fff',
+                border: '1px solid #999',
+                padding: 6,
+                boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999'
+              }}>
+                <div style={{ fontSize: 10, color: '#666', marginBottom: 4 }}>Vista previa:</div>
                 <img alt="logo" src={bLogo} style={{ maxWidth: 140, height: 'auto' }} />
               </div>
             )}
-            <div>
-              <button style={btn()} onClick={saveBrand}>{bId ? 'Guardar cambios' : 'Crear marca'}</button>{' '}
+
+            {/* Acciones */}
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button 
+                style={btn()} 
+                onClick={saveBrand}
+              >
+                {bId ? 'Guardar cambios' : 'Crear marca'}
+              </button>
               <button style={btn()} onClick={clearBrandForm}>Limpiar</button>
             </div>
             </div>
+          </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'sales' && (
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+          <div style={groupHeader()}>Registro de Ventas</div>
+          <div style={groupBody()}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '12px'
+            }}>
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                Total de ventas: {sales.length}
+              </div>
+              <button 
+                onClick={() => {
+                  // Simular carga de ventas
+                  const mockSales = [
+                    {
+                      id: 1,
+                      customerName: 'Juan Pérez',
+                      customerEmail: 'juan@email.com',
+                      total: 2300,
+                      paymentMethod: 'tarjeta',
+                      date: new Date('2024-01-15'),
+                      seller: 'admin@empresa.com',
+                      items: [
+                        { name: 'iPhone 17', quantity: 1, price: 1000 },
+                        { name: 'Samsung Galaxy S23', quantity: 1, price: 1300 }
+                      ]
+                    },
+                    {
+                      id: 2,
+                      customerName: 'María García',
+                      customerEmail: 'maria@email.com',
+                      total: 1000,
+                      paymentMethod: 'efectivo',
+                      date: new Date('2024-01-14'),
+                      seller: 'admin@empresa.com',
+                      items: [
+                        { name: 'iPhone 17', quantity: 1, price: 1000 }
+                      ]
+                    }
+                  ];
+                  setSales(mockSales);
+                }}
+                style={{
+                  padding: '6px 12px',
+                  background: 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)',
+                  border: '1px solid #2e7d32',
+                  borderRadius: '3px',
+                  color: 'white',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontFamily: 'Tahoma, Arial, sans-serif'
+                }}
+              >
+                🔄 Cargar Ventas
+              </button>
+            </div>
+
+            {sales.length === 0 ? (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '40px', 
+                color: '#666',
+                background: '#f9f9f9',
+                border: '1px solid #ddd',
+                borderRadius: '4px'
+              }}>
+                <div style={{ fontSize: '24px', marginBottom: '8px' }}>📊</div>
+                <div>No hay ventas registradas</div>
+                <div style={{ marginTop: '8px', fontSize: '12px' }}>
+                  Haz clic en "Cargar Ventas" para ver el historial
+                </div>
+              </div>
+            ) : (
+              <div style={{ 
+                background: '#fff',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }}>
+                {/* Header de la tabla */}
+                <div style={{
+                  background: 'linear-gradient(to bottom, #f0f0f0 0%, #e0e0e0 100%)',
+                  borderBottom: '1px solid #999',
+                  display: 'grid',
+                  gridTemplateColumns: '80px 1fr 120px 100px 120px 100px',
+                  gap: '8px',
+                  padding: '8px 12px',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  color: '#333'
+                }}>
+                  <div>ID</div>
+                  <div>Cliente</div>
+                  <div>Total</div>
+                  <div>Pago</div>
+                  <div>Fecha</div>
+                  <div>Vendedor</div>
+                </div>
+
+                {/* Filas de la tabla */}
+                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  {sales.map((sale, index) => (
+                    <div key={sale.id} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '80px 1fr 120px 100px 120px 100px',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      borderBottom: index < sales.length - 1 ? '1px solid #eee' : 'none',
+                      fontSize: '11px',
+                      alignItems: 'center',
+                      background: index % 2 === 0 ? '#fff' : '#f9f9f9'
+                    }}>
+                      <div style={{ fontWeight: 'bold', color: '#316ac5' }}>
+                        #{sale.id}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 'bold' }}>{sale.customerName}</div>
+                        <div style={{ fontSize: '10px', color: '#666' }}>{sale.customerEmail}</div>
+                      </div>
+                      <div style={{ fontWeight: 'bold', color: '#008000' }}>
+                        ${sale.total.toFixed(2)}
+                      </div>
+                      <div style={{ 
+                        padding: '2px 6px',
+                        borderRadius: '3px',
+                        fontSize: '10px',
+                        textAlign: 'center',
+                        background: sale.paymentMethod === 'efectivo' ? '#e8f5e8' : 
+                                   sale.paymentMethod === 'tarjeta' ? '#e8f0ff' : '#fff3cd',
+                        color: sale.paymentMethod === 'efectivo' ? '#2e7d32' : 
+                               sale.paymentMethod === 'tarjeta' ? '#1565c0' : '#856404'
+                      }}>
+                        {sale.paymentMethod === 'efectivo' ? '💵 Efectivo' :
+                         sale.paymentMethod === 'tarjeta' ? '💳 Tarjeta' :
+                         sale.paymentMethod === 'transferencia' ? '🏦 Transferencia' :
+                         sale.paymentMethod === 'paypal' ? '🅿️ PayPal' : sale.paymentMethod}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#666' }}>
+                        {sale.date.toLocaleDateString()}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#666' }}>
+                        {sale.seller}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Resumen de ventas */}
+            {sales.length > 0 && (
+              <div style={{
+                marginTop: '16px',
+                background: '#f0f0f0',
+                border: '1px solid #999',
+                borderRadius: '4px',
+                padding: '12px'
+              }}>
+                <div style={{ 
+                  fontSize: '12px', 
+                  fontWeight: 'bold', 
+                  marginBottom: '8px',
+                  color: '#333'
+                }}>
+                  📈 Resumen de Ventas
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', fontSize: '11px' }}>
+                  <div>
+                    <div style={{ color: '#666' }}>Total de Ventas:</div>
+                    <div style={{ fontWeight: 'bold', color: '#316ac5' }}>{sales.length}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: '#666' }}>Ingresos Totales:</div>
+                    <div style={{ fontWeight: 'bold', color: '#008000' }}>
+                      ${sales.reduce((sum, sale) => sum + sale.total, 0).toFixed(2)}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ color: '#666' }}>Promedio por Venta:</div>
+                    <div style={{ fontWeight: 'bold', color: '#ff6b35' }}>
+                      ${(sales.reduce((sum, sale) => sum + sale.total, 0) / sales.length).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -23,6 +23,19 @@ function Catalog() {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   
+  // Estados para el sistema de ventas
+  const [showCart, setShowCart] = useState(false);
+  const [cart, setCart] = useState([]);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [customerData, setCustomerData] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [saleData, setSaleData] = useState(null);
+  
   // Detectar si el usuario es administrador/vendedor
   const userRole = state.user && (state.user.role || (state.user.user_metadata && state.user.user_metadata.role));
   const roleStr = (userRole ? String(userRole) : '').toLowerCase();
@@ -236,6 +249,77 @@ function Catalog() {
     return (found && found.name) || '—';
   };
 
+  // Funciones para el carrito de compras
+  const addToCart = (product) => {
+    const existingItem = cart.find(item => item.id === product.id);
+    if (existingItem) {
+      setCart(cart.map(item => 
+        item.id === product.id 
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      ));
+    } else {
+      setCart([...cart, { ...product, quantity: 1 }]);
+    }
+  };
+
+  const removeFromCart = (productId) => {
+    setCart(cart.filter(item => item.id !== productId));
+  };
+
+  const updateQuantity = (productId, quantity) => {
+    if (quantity <= 0) {
+      removeFromCart(productId);
+    } else {
+      setCart(cart.map(item => 
+        item.id === productId 
+          ? { ...item, quantity }
+          : item
+      ));
+    }
+  };
+
+  const getCartTotal = () => {
+    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    setShowCart(false);
+    setShowCheckout(false);
+  };
+
+  const processSale = async () => {
+    if (cart.length === 0) return;
+    
+    try {
+      // Crear datos de la venta
+      const sale = {
+        id: Date.now(), // ID temporal
+        items: cart,
+        total: getCartTotal(),
+        paymentMethod,
+        customerData,
+        date: new Date(),
+        seller: (state.user && state.user.email) || 'Usuario'
+      };
+      
+      // Guardar datos de la venta para mostrar en el modal
+      setSaleData(sale);
+      
+      // Aquí se procesaría la venta en la base de datos
+      console.log('Procesando venta:', sale);
+      
+      // Mostrar modal de éxito
+      setShowSuccessModal(true);
+      setShowCheckout(false);
+      
+    } catch (error) {
+      console.error('Error procesando venta:', error);
+      alert('Error al procesar la venta');
+    }
+  };
+
   return (
     <Div>
       <section className="com__toolbar">
@@ -265,6 +349,9 @@ function Catalog() {
         <div className="com__function_bar__button">
           <img className="com__function_bar__icon--normalize" src={folderOpen} alt="" />
           <span className="com__function_bar__text">Carpetas</span>
+        </div>
+        <div className="com__function_bar__button" onClick={() => setShowCart(!showCart)}>
+          <span className="com__function_bar__text">🛒 Carrito ({cart.length})</span>
         </div>
       </section>
       <section className="com__address_bar">
@@ -328,7 +415,7 @@ function Catalog() {
                       onFocus={(e) => e.target.style.borderColor = '#4a90e2'}
                       onBlur={(e) => e.target.style.borderColor = '#7aa2e8'}
                     />
-                  </div>
+                </div>
                 </div>
 
                 {/* Filtro de Marca */}
@@ -364,12 +451,12 @@ function Catalog() {
                         cursor: 'pointer'
                       }}
                     >
-                      <option value="all">Todas las marcas</option>
+                    <option value="all">Todas las marcas</option>
                       {state.brands.map(b => (
                         <option key={b.id} value={b.id}>{b.name}</option>
                       ))}
-                    </select>
-                  </div>
+                  </select>
+                </div>
                 </div>
                 
                 {/* Filtro de Categoría */}
@@ -405,11 +492,11 @@ function Catalog() {
                         cursor: 'pointer'
                       }}
                     >
-                      <option value="all">Todas las categorías</option>
-                      <option value="general">General</option>
-                      <option value="otros">Otros</option>
-                    </select>
-                  </div>
+                    <option value="all">Todas las categorías</option>
+                    <option value="general">General</option>
+                    <option value="otros">Otros</option>
+                  </select>
+                </div>
                 </div>
 
                 {/* Separador visual */}
@@ -419,7 +506,7 @@ function Catalog() {
                 <div className="com__content__left__card__row">
                   <button 
                     onClick={() => { setQuery(''); setBrandId('all'); setCategory('all'); }}
-                    style={{
+                    style={{ 
                       width: '100%',
                       padding: '8px 12px',
                       background: 'linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%)',
@@ -526,7 +613,7 @@ function Catalog() {
                             }}>
                               <span style={{ fontSize: '24px', marginBottom: '4px' }}>🖼️</span>
                               <span>Sin imagen</span>
-                            </div>
+                        </div>
                           )}
                           {/* Badge de categoría estilo Windows XP */}
                           <div style={{
@@ -585,14 +672,15 @@ function Catalog() {
                             ${p.price}
                           </div>
                           
-                          {/* Botón de acción estilo Windows XP */}
-                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                          {/* Botones de acción estilo Windows XP */}
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                             <button 
                               onClick={() => setDetailId(p.id)}
                               style={{
-                                padding: '6px 16px',
-                                background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
-                                border: '1px solid #999',
+                                flex: 1,
+                                padding: '6px 10px',
+                                background: 'linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%)',
+                                border: '1px outset #f0f0f0',
                                 borderRadius: '3px',
                                 color: '#000',
                                 fontSize: '11px',
@@ -603,8 +691,8 @@ function Catalog() {
                                 justifyContent: 'center',
                                 gap: '4px',
                                 fontFamily: 'Tahoma, Arial, sans-serif',
-                                boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999',
-                                transition: 'all 0.1s ease'
+                                boxShadow: 'inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.1)',
+                                textShadow: '0 1px 0 rgba(255,255,255,0.8)'
                               }}
                               onMouseDown={(e) => {
                                 e.target.style.background = 'linear-gradient(to bottom, #d0d0d0 0%, #f0f0f0 100%)';
@@ -621,6 +709,41 @@ function Catalog() {
                             >
                               <span style={{ fontSize: '10px' }}>👁️</span>
                               Ver
+                            </button>
+                            <button 
+                              onClick={() => addToCart(p)}
+                              style={{
+                                padding: '6px 12px',
+                                background: 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)',
+                                border: '1px solid #2e7d32',
+                                borderRadius: '3px',
+                                color: '#fff',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                fontFamily: 'Tahoma, Arial, sans-serif',
+                                boxShadow: 'inset 0 1px 0 #fff, 0 1px 0 #999',
+                                transition: 'all 0.1s ease'
+                              }}
+                              onMouseDown={(e) => {
+                                e.target.style.background = 'linear-gradient(to bottom, #45a049 0%, #3d8b40 100%)';
+                                e.target.style.boxShadow = 'inset 0 1px 0 #999, 0 1px 0 #fff';
+                              }}
+                              onMouseUp={(e) => {
+                                e.target.style.background = 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)';
+                                e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.background = 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)';
+                                e.target.style.boxShadow = 'inset 0 1px 0 #fff, 0 1px 0 #999';
+                              }}
+                            >
+                              <span style={{ fontSize: '10px' }}>🛒</span>
+                              Agregar
                             </button>
                           </div>
                         </div>
@@ -795,6 +918,558 @@ function Catalog() {
           </div>
         </div>
       </div>
+
+      {/* Carrito de compras */}
+      {showCart && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '600px',
+          maxHeight: '500px',
+          background: '#fff',
+          border: '2px solid #316ac5',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          zIndex: 1000,
+          fontFamily: 'Tahoma, Arial, sans-serif'
+        }}>
+          {/* Header del carrito */}
+          <div style={{
+            background: 'linear-gradient(to right, #316ac5 0%, #4a7bc8 100%)',
+            color: 'white',
+            padding: '12px 16px',
+            borderRadius: '6px 6px 0 0',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold' }}>🛒 Carrito de Compras</h3>
+            <button 
+              onClick={() => setShowCart(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'white',
+                fontSize: '16px',
+                cursor: 'pointer',
+                padding: '4px 8px'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Contenido del carrito */}
+          <div style={{ padding: '16px', maxHeight: '350px', overflowY: 'auto' }}>
+            {cart.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                <div style={{ fontSize: '24px', marginBottom: '8px' }}>🛒</div>
+                <div>El carrito está vacío</div>
+              </div>
+            ) : (
+              <>
+                {/* Lista de productos */}
+                {cart.map(item => (
+                  <div key={item.id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    marginBottom: '8px',
+                    background: '#f9f9f9'
+                  }}>
+                    <div style={{ width: '60px', height: '60px', marginRight: '12px' }}>
+                      {item.image ? (
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '100%',
+                          height: '100%',
+                          background: '#f0f0f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '4px',
+                          color: '#999'
+                        }}>
+                          🖼️
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{item.name}</div>
+                      <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+                        {brandName(item.brandId)} • ${item.price}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button 
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            background: '#ff6b6b',
+                            border: '1px solid #d32f2f',
+                            borderRadius: '3px',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          -
+                        </button>
+                        <span style={{ minWidth: '30px', textAlign: 'center' }}>{item.quantity}</span>
+                        <button 
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            background: '#4CAF50',
+                            border: '1px solid #2e7d32',
+                            borderRadius: '3px',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          +
+                        </button>
+                        <span style={{ marginLeft: '8px', fontWeight: 'bold', color: '#008000' }}>
+                          ${(item.price * item.quantity).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      onClick={() => removeFromCart(item.id)}
+                      style={{
+                        background: '#ff6b6b',
+                        border: '1px solid #d32f2f',
+                        borderRadius: '3px',
+                        color: 'white',
+                        cursor: 'pointer',
+                        padding: '6px 12px',
+                        fontSize: '11px'
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                ))}
+
+                {/* Total */}
+                <div style={{
+                  borderTop: '2px solid #ddd',
+                  paddingTop: '12px',
+                  marginTop: '12px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ fontSize: '16px', fontWeight: 'bold' }}>Total:</span>
+                  <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#008000' }}>
+                    ${getCartTotal().toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Botones de acción */}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                  <button 
+                    onClick={clearCart}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      background: 'linear-gradient(to bottom, #ff6b6b 0%, #ff5252 100%)',
+                      border: '1px solid #d32f2f',
+                      borderRadius: '4px',
+                      color: 'white',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🗑️ Limpiar Carrito
+                  </button>
+                  <button 
+                    onClick={() => setShowCheckout(true)}
+                    style={{
+                      flex: 2,
+                      padding: '10px',
+                      background: 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)',
+                      border: '1px solid #2e7d32',
+                      borderRadius: '4px',
+                      color: 'white',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    💳 Proceder al Pago
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de checkout */}
+      {showCheckout && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '500px',
+          background: '#fff',
+          border: '2px solid #316ac5',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          zIndex: 1001,
+          fontFamily: 'Tahoma, Arial, sans-serif'
+        }}>
+          {/* Header del checkout */}
+          <div style={{
+            background: 'linear-gradient(to right, #316ac5 0%, #4a7bc8 100%)',
+            color: 'white',
+            padding: '12px 16px',
+            borderRadius: '6px 6px 0 0',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold' }}>💳 Finalizar Compra</h3>
+            <button 
+              onClick={() => setShowCheckout(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'white',
+                fontSize: '16px',
+                cursor: 'pointer',
+                padding: '4px 8px'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Contenido del checkout */}
+          <div style={{ padding: '16px' }}>
+            {/* Datos del cliente */}
+            <div style={{ marginBottom: '16px' }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#333' }}>Datos del Cliente</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <input 
+                  type="text"
+                  placeholder="Nombre completo"
+                  value={customerData.name}
+                  onChange={(e) => setCustomerData({...customerData, name: e.target.value})}
+                  style={{
+                    padding: '8px',
+                    border: '1px solid #999',
+                    borderRadius: '3px',
+                    fontSize: '12px',
+                    fontFamily: 'Tahoma, Arial, sans-serif'
+                  }}
+                />
+                <input 
+                  type="email"
+                  placeholder="Email"
+                  value={customerData.email}
+                  onChange={(e) => setCustomerData({...customerData, email: e.target.value})}
+                  style={{
+                    padding: '8px',
+                    border: '1px solid #999',
+                    borderRadius: '3px',
+                    fontSize: '12px',
+                    fontFamily: 'Tahoma, Arial, sans-serif'
+                  }}
+                />
+                <input 
+                  type="tel"
+                  placeholder="Teléfono"
+                  value={customerData.phone}
+                  onChange={(e) => setCustomerData({...customerData, phone: e.target.value})}
+                  style={{
+                    padding: '8px',
+                    border: '1px solid #999',
+                    borderRadius: '3px',
+                    fontSize: '12px',
+                    fontFamily: 'Tahoma, Arial, sans-serif'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Método de pago */}
+            <div style={{ marginBottom: '16px' }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#333' }}>Método de Pago</h4>
+              <select 
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #999',
+                  borderRadius: '3px',
+                  fontSize: '12px',
+                  fontFamily: 'Tahoma, Arial, sans-serif'
+                }}
+              >
+                <option value="">Seleccionar método de pago</option>
+                <option value="efectivo">💵 Efectivo</option>
+                <option value="tarjeta">💳 Tarjeta de Crédito/Débito</option>
+                <option value="transferencia">🏦 Transferencia Bancaria</option>
+                <option value="paypal">🅿️ PayPal</option>
+              </select>
+            </div>
+
+            {/* Resumen de la compra */}
+            <div style={{ 
+              background: '#f0f0f0',
+              border: '1px solid #999',
+              borderRadius: '4px',
+              padding: '12px',
+              marginBottom: '16px'
+            }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#333' }}>Resumen de la Compra</h4>
+              {cart.map(item => (
+                <div key={item.id} style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  fontSize: '11px',
+                  marginBottom: '4px'
+                }}>
+                  <span>{item.name} x{item.quantity}</span>
+                  <span>${(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+              ))}
+              <div style={{ 
+                borderTop: '1px solid #999',
+                paddingTop: '8px',
+                marginTop: '8px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontWeight: 'bold'
+              }}>
+                <span>Total:</span>
+                <span>${getCartTotal().toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Botones de acción */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                onClick={() => setShowCheckout(false)}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
+                  border: '1px solid #999',
+                  borderRadius: '4px',
+                  color: '#000',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                ← Volver
+              </button>
+              <button 
+                onClick={processSale}
+                disabled={!paymentMethod || !customerData.name}
+                style={{
+                  flex: 2,
+                  padding: '10px',
+                  background: paymentMethod && customerData.name 
+                    ? 'linear-gradient(to bottom, #4CAF50 0%, #45a049 100%)'
+                    : 'linear-gradient(to bottom, #ccc 0%, #bbb 100%)',
+                  border: '1px solid #2e7d32',
+                  borderRadius: '4px',
+                  color: 'white',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  cursor: paymentMethod && customerData.name ? 'pointer' : 'not-allowed',
+                  opacity: paymentMethod && customerData.name ? 1 : 0.6
+                }}
+              >
+                ✅ Confirmar Venta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de venta exitosa */}
+      {showSuccessModal && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '400px',
+          background: '#f0f0f0',
+          border: '2px outset #f0f0f0',
+          borderRadius: '0',
+          boxShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+          zIndex: 1002,
+          fontFamily: 'Tahoma, Arial, sans-serif'
+        }}>
+          {/* Header del modal estilo Windows XP */}
+          <div style={{
+            background: 'linear-gradient(to bottom, #316ac5 0%, #1e4a8c 100%)',
+            color: 'white',
+            padding: '8px 12px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px solid #1e4a8c'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '16px' }}>✅</span>
+              <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Venta Exitosa</span>
+            </div>
+            <button 
+              onClick={() => {
+                setShowSuccessModal(false);
+                clearCart();
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'white',
+                fontSize: '14px',
+                cursor: 'pointer',
+                padding: '2px 6px',
+                borderRadius: '2px'
+              }}
+              onMouseOver={(e) => e.target.style.background = 'rgba(255,255,255,0.2)'}
+              onMouseOut={(e) => e.target.style.background = 'transparent'}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Contenido del modal */}
+          <div style={{ padding: '16px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>🎉</div>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#008000', marginBottom: '4px' }}>
+                ¡Venta Procesada Exitosamente!
+              </div>
+              <div style={{ fontSize: '11px', color: '#666' }}>
+                La venta ha sido registrada correctamente
+              </div>
+            </div>
+
+            {saleData && (
+              <div style={{
+                background: '#fff',
+                border: '1px inset #f0f0f0',
+                padding: '12px',
+                marginBottom: '16px',
+                fontSize: '11px'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
+                  📋 Detalles de la Venta
+                </div>
+                <div style={{ marginBottom: '4px' }}>
+                  <strong>ID de Venta:</strong> #{saleData.id}
+                </div>
+                <div style={{ marginBottom: '4px' }}>
+                  <strong>Cliente:</strong> {saleData.customerData.name}
+                </div>
+                <div style={{ marginBottom: '4px' }}>
+                  <strong>Método de Pago:</strong> {saleData.paymentMethod}
+                </div>
+                <div style={{ marginBottom: '4px' }}>
+                  <strong>Productos:</strong> {saleData.items.length} artículo(s)
+                </div>
+                <div style={{ marginBottom: '4px' }}>
+                  <strong>Total:</strong> <span style={{ color: '#008000', fontWeight: 'bold' }}>${saleData.total.toFixed(2)}</span>
+                </div>
+                <div style={{ marginBottom: '4px' }}>
+                  <strong>Fecha:</strong> {saleData.date.toLocaleString()}
+                </div>
+                <div>
+                  <strong>Vendedor:</strong> {saleData.seller}
+                </div>
+              </div>
+            )}
+
+            {/* Lista de productos vendidos */}
+            {saleData && saleData.items.length > 0 && (
+              <div style={{
+                background: '#fff',
+                border: '1px inset #f0f0f0',
+                padding: '12px',
+                marginBottom: '16px',
+                fontSize: '11px',
+                maxHeight: '120px',
+                overflowY: 'auto'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
+                  🛍️ Productos Vendidos
+                </div>
+                {saleData.items.map((item, index) => (
+                  <div key={index} style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    marginBottom: '2px',
+                    padding: '2px 0'
+                  }}>
+                    <span>{item.name} x{item.quantity}</span>
+                    <span style={{ color: '#008000' }}>${(item.price * item.quantity).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Botones */}
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <button 
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  clearCart();
+                }}
+                style={{
+                  padding: '8px 16px',
+                  background: 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)',
+                  border: '1px outset #f0f0f0',
+                  borderRadius: '0',
+                  color: '#000',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontFamily: 'Tahoma, Arial, sans-serif'
+                }}
+                onMouseDown={(e) => {
+                  e.target.style.background = 'linear-gradient(to bottom, #d0d0d0 0%, #f0f0f0 100%)';
+                  e.target.style.border = '1px inset #f0f0f0';
+                }}
+                onMouseUp={(e) => {
+                  e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                  e.target.style.border = '1px outset #f0f0f0';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%)';
+                  e.target.style.border = '1px outset #f0f0f0';
+                }}
+              >
+                ✅ Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Barra de estado */}
       <div style={{ marginTop: 8, background: '#e8e4cf', border: '1px solid #b8b4a2', padding: '6px 8px', fontSize: 11 }}>
