@@ -1251,10 +1251,12 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
                 {/* Botones de acción */}
                 <div style={{ 
                   display: 'grid',
-                  gridTemplateColumns: isNarrow ? '1fr' : 'repeat(2, minmax(140px,1fr))',
+                  gridTemplateColumns: isNarrow ? '1fr' : 'repeat(2, 1fr)',
                   gap: '8px',
                   justifyContent: 'center',
                   justifyItems: 'center',
+                  width: '100%',
+                  boxSizing: 'border-box',
                   marginTop: '12px'
                 }}>
                   <button 
@@ -1633,7 +1635,7 @@ function Admin({ defaultTab = 'products', showLauncher = false, openCatalog }) {
             )}
 
             {/* Acciones */}
-            <div style={{ display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : 'repeat(2, minmax(140px,1fr))', gap: 8, justifyItems: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : 'repeat(2, 1fr)', gap: 8, justifyItems: 'center', width: '100%', boxSizing: 'border-box' }}>
               <button 
                 style={{
                   padding: '6px 12px',
